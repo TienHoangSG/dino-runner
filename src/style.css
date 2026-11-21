@@ -93,3 +93,12 @@ footer span:last-child { letter-spacing: 2px; }
 .force-landscape .touch-controls button { flex:none; min-width:110px; padding:15px 20px; pointer-events:auto; opacity:.9; }
 .force-landscape .fullscreen-button { bottom:12px; right:12px; }
 .force-landscape .overlay > div { padding:14px 24px; }
+/* Holding game controls should stay a game gesture on touch browsers. */
+.game, .game * {
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.game button { touch-action:manipulation; }
+.game .touch-controls button { touch-action:none; }

@@ -30,6 +30,12 @@ function App() {
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => { try { return Number(localStorage.getItem('fern-best')) || 0; } catch { return 0; } });
   useEffect(() => {
+    const container = gameContainer.current;
+    const preventSelection = (event: Event) => event.preventDefault();
+    container?.addEventListener('selectstart', preventSelection);
+    return () => container?.removeEventListener('selectstart', preventSelection);
+  }, []);
+  useEffect(() => {
     const syncFullscreen = () => {
       setExpanded(document.fullscreenElement === gameContainer.current);
     };
@@ -292,7 +298,7 @@ function App() {
   return <main>
     <header><a href="./" className="brand">fern run<span>↗</span></a><span className="tag">Một chuyến chạy qua rừng cổ đại</span></header>
 
-    <section ref={gameContainer} className={expanded ? `game expanded${rotateLayout ? " force-landscape" : ""}` : "game"}>
+    <section ref={gameContainer} onContextMenu={event => event.preventDefault()} onDragStart={event => event.preventDefault()} className={expanded ? `game expanded${rotateLayout ? " force-landscape" : ""}` : "game"}>
 
 
       <div className="level">CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm</div>
@@ -304,7 +310,14 @@ function App() {
       </div>
       <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi</span></div>
       <div className="touch-controls">
-        <button onClick={() => action.current()}>Nhảy ↑</button>
+        <button onPointerDown={event => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          action.current();
+        }} onClick={event => {
+          // Keyboard and assistive activation has no preceding pointer press.
+          if (event.detail === 0) action.current();
+        }}>Nhảy ↑</button>
         <button onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); duck.current = true; }} onPointerUp={() => { duck.current = false; }} onPointerCancel={() => { duck.current = false; }} onLostPointerCapture={() => { duck.current = false; }}>Giữ để cúi ↓</button>
       </div>
     </section>
