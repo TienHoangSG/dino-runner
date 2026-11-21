@@ -1,8 +1,39 @@
+export function shouldUseMig31(score: number) {
+  return score > 2000;
+}
+
 export function createDistantDragon() {
   const sprite = new Image();
   sprite.src = '/dragon-transparent-motion.png';
+  const mig31 = new Image();
+  mig31.src = '/mig-31.png';
 
   return (ctx: CanvasRenderingContext2D, time: number, distance: number) => {
+    const score = Math.floor(distance / 10);
+    const appearanceInterval = 1400 / 0.3;
+    const x = ((distance * 1.03 + 450) % appearanceInterval + appearanceInterval) % appearanceInterval - 200;
+    if (shouldUseMig31(score)) {
+      if (!mig31.complete || !mig31.naturalWidth) return;
+      const width = 172;
+      const height = width * mig31.naturalHeight / mig31.naturalWidth;
+      const y = 54 + Math.sin(time * 0.52) * 5;
+      const tilt = Math.sin(time * 0.7) * 0.018;
+      ctx.save();
+      ctx.globalAlpha = 0.86;
+      ctx.translate(x + width / 2, y + height / 2);
+      ctx.rotate(tilt);
+      ctx.drawImage(mig31, -width / 2, -height / 2, width, height);
+      const engineGlow = 0.3 + (Math.sin(time * 7) + 1) * 0.12;
+      const exhaust = ctx.createLinearGradient(-width / 2, 0, -width / 2 - 24, 0);
+      exhaust.addColorStop(0, `rgba(159, 220, 255, ${engineGlow})`);
+      exhaust.addColorStop(1, 'rgba(110, 168, 255, 0)');
+      ctx.fillStyle = exhaust;
+      ctx.beginPath();
+      ctx.ellipse(-width / 2 - 9, 5, 20, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
     if (!sprite.complete || !sprite.naturalWidth) return;
     const cycle = time % 9;
     const flameTime = cycle - 7.5;
@@ -11,8 +42,6 @@ export function createDistantDragon() {
     const cellHeight = sprite.naturalHeight / 2;
     const width = 165;
     const height = width * cellHeight / cellWidth;
-    const appearanceInterval = 1400 / 0.3;
-    const x = ((distance * 1.03 + 450) % appearanceInterval + appearanceInterval) % appearanceInterval - 200;
     const smooth = (value: number) => {
       const t = Math.max(0, Math.min(1, value));
       return t * t * (3 - 2 * t);

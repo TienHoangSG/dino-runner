@@ -2,11 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 import { createForest, drawForest } from './forest';
+import { drawMidground } from './midground';
 import { drawGround } from './ground';
 import { createDistantDragon } from './dragon';
 import { swipeDirection } from './swipe';
 import { canPterosaurJump, pterosaurLandingHeight } from './jump';
 import { hitsGroundObstacle } from './collision';
+import { drawUfo, shouldSpawnUfo, ufoScaleForFlightMode } from './ufo';
+import { backgroundModeFromStored, type BackgroundMode } from './background';
 
 function App() {
   const gameContainer = useRef<HTMLElement>(null);
@@ -30,6 +33,10 @@ function App() {
   const duck = useRef(false);
   const gesture = useRef<{ id: number; x: number; y: number; direction: string | null } | null>(null);
   const [phase, setPhase] = useState('ready');
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => {
+    try { return backgroundModeFromStored(localStorage.getItem('fern-background')); } catch { return 'detailed'; }
+  });
+  const detailedBackground = useRef(backgroundMode === 'detailed');
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => { try { return Number(localStorage.getItem('fern-best')) || 0; } catch { return 0; } });
   useEffect(() => {
@@ -38,6 +45,10 @@ function App() {
     container?.addEventListener('selectstart', preventSelection);
     return () => container?.removeEventListener('selectstart', preventSelection);
   }, []);
+  useEffect(() => {
+    detailedBackground.current = backgroundMode === 'detailed';
+    try { localStorage.setItem('fern-background', backgroundMode); } catch { /* Storage may be unavailable. */ }
+  }, [backgroundMode]);
   useEffect(() => {
     const syncFullscreen = () => {
       setExpanded(document.fullscreenElement === gameContainer.current);
@@ -83,12 +94,14 @@ function App() {
     sprite.src = '/trex-motion.png';
     const pterosaur = new Image();
     pterosaur.src = '/pterosaur-orange-flight.png';
+    const mountainLandscape = new Image();
+    mountainLandscape.src = '/prehistoric-mountain-valley.png';
     let animationTime = 0;
     let extraJumpUsed = false;
     let jumpPulse = 0;
     let obstaclePair: boolean[] = [];
     let nextVolcano = Math.random() < 0.5;
-    let obstacles: { x: number; w: number; h: number; volcano: boolean; flying: boolean; flightY: number; flightMode: number; size: number }[] = [];
+    let obstacles: { x: number; w: number; h: number; volcano: boolean; flying: boolean; ufo: boolean; flightY: number; flightMode: number; size: number }[] = [];
     const drawPterosaur = (x: number, flightY: number, size: number, phase = 0) => {
           if (pterosaur.complete && pterosaur.naturalWidth) {
             const frameWidth = pterosaur.naturalWidth / 4;
@@ -153,11 +166,13 @@ function App() {
           const volcano = !flying && nextVolcano;
           if (!flying) nextVolcano = !nextVolcano;
           const flightMode = Math.floor(Math.random() * 5);
-          const size = Math.random() < 0.5 ? 0.75 : 1.1;
+          const baseSize = Math.random() < 0.5 ? 0.75 : 1.1;
+          const ufo = flying && shouldSpawnUfo(Math.floor(distance / 10), Math.random());
+          const size = baseSize * (ufo ? ufoScaleForFlightMode(flightMode) : 1);
           obstacles.push({
             x: 1000, w: flying ? 58 : volcano ? 64 : 48,
             h: flying ? 35 : volcano ? 48 : 44,
-            volcano, flying, flightMode, size,
+            volcano, flying, ufo, flightMode, size,
             flightY: [301, 286, 330, 145, 70][flightMode]
           });
           wait = 1.25 + Math.random() * 0.7;
@@ -189,15 +204,21 @@ function App() {
           setBest(previous => { const next = Math.max(previous, result); try { localStorage.setItem('fern-best', String(next)); } catch { /* Storage may be unavailable. */ } return next; });
         }
       }
-      const sky = ctx.createLinearGradient(0, 0, 0, 420); sky.addColorStop(0, '#edb999'); sky.addColorStop(1, '#f5dec0'); ctx.fillStyle = sky; ctx.fillRect(0, 0, 1000, 420);
-      ctx.fillStyle = '#ffe9b9'; ctx.beginPath(); ctx.arc(780, 95, 46, 0, Math.PI * 2); ctx.fill();
-      [0,1,2].forEach(layer => {
-        ctx.fillStyle = ['#c0bb9b','#91a18a','#617e70'][layer];
-        ctx.beginPath(); ctx.moveTo(0, 350);
-        for (let x = 0; x <= 1020; x += 10) ctx.lineTo(x, 230 + layer * 30 + Math.sin((x + distance * (layer + 1) * 0.12) / (140 - layer * 25)) * (36 - layer * 5));
-        ctx.lineTo(1000,420); ctx.lineTo(0,420); ctx.fill();
-      });
+      const detailed = detailedBackground.current && mountainLandscape.complete && mountainLandscape.naturalWidth;
+      if (detailed) {
+        ctx.drawImage(mountainLandscape, 0, 0, 1000, 420);
+      } else {
+        const sky = ctx.createLinearGradient(0, 0, 0, 420); sky.addColorStop(0, '#edb999'); sky.addColorStop(1, '#f5dec0'); ctx.fillStyle = sky; ctx.fillRect(0, 0, 1000, 420);
+        ctx.fillStyle = '#ffe9b9'; ctx.beginPath(); ctx.arc(780, 95, 46, 0, Math.PI * 2); ctx.fill();
+        [0,1,2].forEach(layer => {
+          ctx.fillStyle = ['#c0bb9b','#91a18a','#617e70'][layer];
+          ctx.beginPath(); ctx.moveTo(0, 350);
+          for (let x = 0; x <= 1020; x += 10) ctx.lineTo(x, 230 + layer * 30 + Math.sin((x + distance * (layer + 1) * 0.12) / (140 - layer * 25)) * (36 - layer * 5));
+          ctx.lineTo(1000,420); ctx.lineTo(0,420); ctx.fill();
+        });
+      }
       drawDragon(ctx, animationTime, distance);
+      if (detailed) drawMidground(ctx, distance);
       drawForest(ctx, forest, distance);
       drawGround(ctx, distance);
       const polygon = (points: number[][], color: string) => {
@@ -211,7 +232,8 @@ function App() {
         const top = 350 - o.h;
         if (o.flying) {
           const bodyY = o.flightY;
-          drawPterosaur(o.x, bodyY, o.size);
+          if (o.ufo) drawUfo(ctx, o.x, bodyY, animationTime, o.size);
+          else drawPterosaur(o.x, bodyY, o.size);
         } else if (o.volcano) {
           const center = o.x + o.w / 2;
           polygon([[o.x-3,348],[o.x+12,333],[center-10,top],[center+9,top],[o.x+o.w-12,332],[o.x+o.w+3,348],[center+10,352],[center-12,352]], '#643124');
@@ -334,6 +356,11 @@ function App() {
         <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"} title={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
       </div>
       <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi</span></div>
+      <div className="background-options" role="group" aria-label="Kiểu nền">
+        <span>Nền</span>
+        <button className={backgroundMode === 'detailed' ? 'active' : ''} aria-pressed={backgroundMode === 'detailed'} onClick={() => setBackgroundMode('detailed')}>Chi tiết</button>
+        <button className={backgroundMode === 'simple' ? 'active' : ''} aria-pressed={backgroundMode === 'simple'} onClick={() => setBackgroundMode('simple')}>Đơn giản</button>
+      </div>
 
     </section>
     <p className="swipe-guide">Vuốt lên để nhảy · Vuốt xuống và giữ để cúi · Nhấc tay để đứng lên</p>
