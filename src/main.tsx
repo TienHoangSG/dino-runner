@@ -10,6 +10,7 @@ import { canPterosaurJump, pterosaurLandingHeight } from './jump';
 import { hitsGroundObstacle } from './collision';
 import { drawUfo, shouldSpawnUfo, ufoScaleForFlightMode } from './ufo';
 import { backgroundModeFromStored, type BackgroundMode } from './background';
+import { canRestartAfterGameOver } from './restart';
 
 function App() {
   const gameContainer = useRef<HTMLElement>(null);
@@ -29,7 +30,7 @@ function App() {
     };
   }, []);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const action = useRef(() => { /* Initialized by the game effect. */ });
+  const action = useRef<(usedRestartButton?: boolean) => void>(() => { /* Initialized by the game effect. */ });
   const duck = useRef(false);
   const gesture = useRef<{ id: number; x: number; y: number; direction: string | null } | null>(null);
   const [phase, setPhase] = useState('ready');
@@ -89,7 +90,7 @@ function App() {
     const ctx = canvas.current!.getContext('2d')!;
     const forest = createForest();
     const drawDragon = createDistantDragon();
-    let mode = 'ready', y = 0, velocity = 0, distance = 0, speed = 280, wait = 1.5, last = 0, frame = 0;
+    let mode = 'ready', y = 0, velocity = 0, distance = 0, speed = 280, wait = 1.5, last = 0, frame = 0, gameOverAt = 0;
     const sprite = new Image();
     sprite.src = '/trex-motion.png';
     const pterosaur = new Image();
@@ -129,8 +130,9 @@ function App() {
           }
     };
     const change = (value: string) => { mode = value; setPhase(value); };
-    action.current = () => {
+    action.current = (usedRestartButton = false) => {
       if (mode === 'paused') { change('playing'); return; }
+      if (mode === 'over' && !canRestartAfterGameOver(performance.now() - gameOverAt, usedRestartButton)) return;
       if (mode !== 'playing') { extraJumpUsed = false; jumpPulse = 0; duck.current = false; y = 0; velocity = 0; distance = 0; speed = 280; wait = 1.5; obstacles = []; obstaclePair = []; nextVolcano = Math.random() < 0.5; setScore(0); change('playing'); }
       if (y === 0 && !duck.current) {
         velocity = 650;
@@ -201,6 +203,7 @@ function App() {
           return playerTop < bottom && 346 - y > top;
         })) {
           duck.current = false;
+          gameOverAt = performance.now();
           change('over');
           const result = Math.floor(distance / 10);
           setBest(previous => { const next = Math.max(previous, result); try { localStorage.setItem('fern-best', String(next)); } catch { /* Storage may be unavailable. */ } return next; });
@@ -362,7 +365,7 @@ function App() {
       }} onPointerCancel={() => { gesture.current = null; duck.current = false; }}
       onLostPointerCapture={() => { gesture.current = null; duck.current = false; }}>
         <canvas ref={canvas} width="1000" height="420" aria-label="Game T-rex nhảy qua núi lửa và đá" />
-        {phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button>{phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button></div></div>}
+        {phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button onPointerDown={event => { event.stopPropagation(); action.current(true); }} onClick={event => event.stopPropagation()}>{phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button></div></div>}
         <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"} title={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
       </div>
       <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi</span></div>
