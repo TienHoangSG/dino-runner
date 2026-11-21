@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './style.css';
 import { createForest, drawForest } from './forest';
 import { drawGround } from './ground';
+import { createDistantDragon } from './dragon';
 
 function App() {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -16,14 +17,41 @@ function App() {
   useEffect(() => {
     const ctx = canvas.current!.getContext('2d')!;
     const forest = createForest();
+    const drawDragon = createDistantDragon();
     let mode = 'ready', y = 0, velocity = 0, distance = 0, speed = 280, wait = 1.5, last = 0, frame = 0;
     const sprite = new Image();
     sprite.src = '/trex-motion.png';
+    const pterosaur = new Image();
+    pterosaur.src = '/pterosaur-orange-flight.png';
     let animationTime = 0;
     let continueAvailable = true;
     let obstaclePair: boolean[] = [];
     let nextVolcano = Math.random() < 0.5;
-    let obstacles: { x: number; w: number; h: number; volcano: boolean; flying: boolean; flightY: number; flightMode: number }[] = [];
+    let obstacles: { x: number; w: number; h: number; volcano: boolean; flying: boolean; flightY: number; flightMode: number; size: number }[] = [];
+    const drawPterosaur = (x: number, flightY: number, size: number, phase = 0) => {
+          if (pterosaur.complete && pterosaur.naturalWidth) {
+            const frameWidth = pterosaur.naturalWidth / 4;
+            const frameHeight = pterosaur.naturalHeight;
+            const flightFrame = Math.floor(animationTime * 4.5 + phase) % 4;
+            // Register frames by the eye, rather than the changing wing bounds.
+            const eyeAnchors = [
+              { x: 200 / 543, y: 245 / 724 },
+              { x: 207 / 543, y: 248 / 724 },
+              { x: 209 / 543, y: 249 / 724 },
+              { x: 211 / 543, y: 249 / 724 }
+            ];
+            const eye = eyeAnchors[flightFrame];
+            const width = 105 * size;
+            const height = width * frameHeight / frameWidth;
+            ctx.save();
+            if (size > 1) ctx.filter = 'saturate(0.35) brightness(0.82)';
+            ctx.drawImage(
+              pterosaur, flightFrame * frameWidth, 0, frameWidth, frameHeight,
+              x + 12 - width * eye.x, flightY - 12 * size - height * eye.y, width, height
+            );
+            ctx.restore();
+          }
+    };
     const change = (value: string) => { mode = value; setPhase(value); };
     action.current = () => {
       if (mode === 'revive') {
@@ -70,12 +98,13 @@ function App() {
           const flying = obstaclePair.pop()!;
           const volcano = !flying && nextVolcano;
           if (!flying) nextVolcano = !nextVolcano;
-          const flightMode = Math.floor(Math.random() * 3);
+          const flightMode = Math.floor(Math.random() * 5);
+          const size = Math.random() < 0.5 ? 0.75 : 1.1;
           obstacles.push({
             x: 1000, w: flying ? 58 : volcano ? 64 : 48,
             h: flying ? 35 : volcano ? 48 : 44,
-            volcano, flying, flightMode,
-            flightY: [301, 286, 330][flightMode]
+            volcano, flying, flightMode, size,
+            flightY: [301, 286, 330, 145, 70][flightMode]
           });
           wait = 1.25 + Math.random() * 0.7;
         }
@@ -85,13 +114,13 @@ function App() {
         const crouching = duck.current && y === 0;
         const playerTop = 350 - y - (crouching ? 29 : 65);
         if (obstacles.some(o => {
-          const left = o.flying ? o.x + 8 : o.x + 6;
-          const right = o.flying ? o.x + 53 : o.x + o.w - 6;
+          const left = o.flying ? o.x + 29 - 22 * o.size : o.x + 6;
+          const right = o.flying ? o.x + 29 + 22 * o.size : o.x + o.w - 6;
           if (170 <= left || 120 >= right) return false;
           // Use spatial overlap for every flight height, including during jumps.
-          const bob = Math.sin(animationTime * Math.PI * 5) * 1.5;
-          const top = o.flying ? o.flightY + bob - 9 : 350 - o.h + 5;
-          const bottom = o.flying ? o.flightY + bob + 7 : 350;
+          const bob = 0;
+          const top = o.flying ? o.flightY + bob - 9 * o.size : 350 - o.h + 5;
+          const bottom = o.flying ? o.flightY + bob + 7 * o.size : 350;
           return playerTop < bottom && 346 - y > top;
         })) {
           duck.current = false;
@@ -108,6 +137,7 @@ function App() {
         for (let x = 0; x <= 1020; x += 10) ctx.lineTo(x, 230 + layer * 30 + Math.sin((x + distance * (layer + 1) * 0.12) / (140 - layer * 25)) * (36 - layer * 5));
         ctx.lineTo(1000,420); ctx.lineTo(0,420); ctx.fill();
       });
+      drawDragon(ctx, animationTime, distance);
       drawForest(ctx, forest, distance);
       drawGround(ctx, distance);
       const polygon = (points: number[][], color: string) => {
@@ -120,51 +150,8 @@ function App() {
       obstacles.forEach(o => {
         const top = 350 - o.h;
         if (o.flying) {
-          const wingBeat = Math.sin(animationTime * Math.PI * 5);
-          const bodyY = o.flightY + Math.sin(animationTime * Math.PI * 5) * 1.5;
-          ctx.save();
-          ctx.translate(o.x + 12, bodyY);
-          ctx.scale(0.8, 0.8);
-          ctx.lineJoin = 'round';
-          ctx.lineWidth = 1.5;
-          const wing = (rootX: number, reach: number, depth: number, color: string) => {
-            const tipY = -8 - wingBeat * depth;
-            ctx.beginPath();
-            ctx.moveTo(rootX, 0);
-            ctx.quadraticCurveTo(rootX + reach * 0.3, tipY * 0.45 - 8, rootX + reach, tipY);
-            ctx.quadraticCurveTo(rootX + reach * 0.75, tipY + 16, rootX + reach * 0.52, tipY * 0.55 + 12);
-            ctx.quadraticCurveTo(rootX + reach * 0.2, 16, rootX + 10, 7);
-            ctx.closePath();
-            ctx.fillStyle = color; ctx.fill();
-            ctx.strokeStyle = '#214b50'; ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(rootX, 0); ctx.lineTo(rootX + reach, tipY);
-            ctx.moveTo(rootX + 7, 4); ctx.lineTo(rootX + reach * 0.72, tipY * 0.7 + 6);
-            ctx.strokeStyle = '#9b743d'; ctx.lineWidth = 0.8; ctx.stroke();
-            ctx.lineWidth = 1.5;
-          };
-          wing(28, -30, 35, '#d7aa60');
-          ctx.beginPath();
-          ctx.moveTo(11,-7);
-          ctx.quadraticCurveTo(27,-9,40,-2);
-          ctx.lineTo(57,4);
-          ctx.lineTo(46,9);
-          ctx.quadraticCurveTo(27,12,12,2);
-          ctx.closePath();
-          ctx.fillStyle = '#167f96'; ctx.fill(); ctx.strokeStyle = '#214b50'; ctx.stroke();
-          polygon([[5,-10],[14,-16],[26,-19],[20,-9],[24,-4],[10,0]], '#167f96');
-          ctx.strokeStyle = '#214b50';
-          ctx.beginPath(); ctx.moveTo(5,-10); ctx.lineTo(26,-19); ctx.lineTo(20,-9); ctx.stroke();
-          polygon([[7,-8],[-15,3],[12,-1]], '#e7bd6c');
-          ctx.beginPath(); ctx.moveTo(-15,3); ctx.lineTo(10,-4); ctx.stroke();
-          ctx.fillStyle = '#102f3d'; ctx.beginPath(); ctx.arc(11,-8,2,0,Math.PI*2); ctx.fill();
-          ctx.fillStyle = '#fff5d8'; ctx.beginPath(); ctx.arc(10.5,-8.5,0.7,0,Math.PI*2); ctx.fill();
-          wing(32, 31, 43, '#f2d18b');
-          ctx.strokeStyle = '#795a34'; ctx.lineWidth = 1.4;
-          for (let toe = 0; toe < 3; toe++) {
-            ctx.beginPath(); ctx.moveTo(48,6); ctx.lineTo(57+toe*3,12+toe*2); ctx.stroke();
-          }
-          ctx.restore();
+          const bodyY = o.flightY;
+          drawPterosaur(o.x, bodyY, o.size);
         } else if (o.volcano) {
           const center = o.x + o.w / 2;
           polygon([[o.x-3,348],[o.x+12,333],[center-10,top],[center+9,top],[o.x+o.w-12,332],[o.x+o.w+3,348],[center+10,352],[center-12,352]], '#643124');
@@ -182,18 +169,38 @@ function App() {
           }
         } else {
           const x = o.x, w = o.w;
-          polygon([[x-7,350],[x+5,338],[x+7,top+3],[x+12,top+12],[x+17,top],[x+23,top+14],[x+31,top+6],[x+34,top+18],[x+w-5,top+8],[x+w-4,337],[x+w+8,350],[x+29,346],[x+15,352]], '#503324');
-          polygon([[x+8,top+9],[x+13,top+17],[x+17,top+3],[x+20,top+18],[x+17,337],[x+9,346]], '#ab8151');
-          polygon([[x+26,top+16],[x+31,top+9],[x+34,top+22],[x+30,342],[x+22,349]], '#926641');
-          ctx.strokeStyle = '#36291f'; ctx.lineWidth = 1.4;
-          for (let i = 0; i < 4; i++) {
-            ctx.beginPath(); ctx.moveTo(x+10+i*8,top+20); ctx.quadraticCurveTo(x+7+i*8,329,x+9+i*8,344); ctx.stroke();
+          // Broad root flare anchors the obstacle to the running surface.
+          ctx.fillStyle = '#263f2a40';
+          ctx.beginPath(); ctx.ellipse(x+w/2,351,w/2+10,3,0,0,Math.PI*2); ctx.fill();
+          polygon([[x-7,350],[x+5,338],[x+7,top+5],[x+12,top+13],[x+16,top],[x+21,top+10],[x+27,top+7],[x+31,top+17],[x+w-6,top+3],[x+w-4,336],[x+w+8,350],[x+29,347],[x+16,352]], '#3c291f');
+          const wood = ctx.createLinearGradient(x,0,x+w,0);
+          wood.addColorStop(0,'#6a442b'); wood.addColorStop(0.4,'#a1784b'); wood.addColorStop(0.65,'#64402a'); wood.addColorStop(1,'#38271e');
+          ctx.fillStyle = wood;
+          ctx.beginPath(); ctx.moveTo(x+8,top+15); ctx.lineTo(x+16,top+4);
+          ctx.lineTo(x+21,top+15); ctx.lineTo(x+29,top+12); ctx.lineTo(x+33,top+23);
+          ctx.lineTo(x+w-7,top+12); ctx.lineTo(x+w-6,337); ctx.lineTo(x+31,347);
+          ctx.lineTo(x+15,347); ctx.lineTo(x+7,339); ctx.closePath(); ctx.fill();
+          polygon([[x+12,top+14],[x+16,top+2],[x+20,top+12],[x+18,top+21]], '#d3b17a');
+          polygon([[x+w-13,top+17],[x+w-6,top+4],[x+w-6,top+15],[x+w-11,top+27]], '#b99863');
+          ctx.strokeStyle = '#402b20'; ctx.lineWidth = 1.5;
+          for (let i = 0; i < 5; i++) {
+            const bx = x+10+i*7;
+            ctx.beginPath(); ctx.moveTo(bx,top+22+i%2*3);
+            ctx.bezierCurveTo(bx-4,top+30,bx+3,337,bx-3,346); ctx.stroke();
           }
-          polygon([[x+12,338],[x-7,350],[x+8,347],[x+19,335]], '#765334');
-          polygon([[x+31,336],[x+25,351],[x+34,347],[x+w+8,350],[x+w-4,340]], '#765334');
-          [[8,17,5],[29,24,6],[39,35,5],[16,37,6],[4,40,4]].forEach(([mx,my,r]) => {
-            ctx.fillStyle = '#5f8b32'; ctx.beginPath(); ctx.ellipse(x+mx,top+my,r,r*1.3,0.3,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#9dbb50'; ctx.beginPath(); ctx.ellipse(x+mx-1,top+my-2,r*0.65,r*0.7,0.3,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#2b231b'; ctx.beginPath();
+          ctx.ellipse(x+27,top+29,4,8,-0.15,0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle = '#be925b'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.ellipse(x+27,top+29,6,10,-0.15,0.2,Math.PI*1.5); ctx.stroke();
+          polygon([[x+11,335],[x+2,345],[x-7,350],[x+8,347],[x+18,338]], '#926540');
+          polygon([[x+31,337],[x+24,352],[x+33,348],[x+w+8,350],[x+w-4,339]], '#765034');
+          ctx.strokeStyle = '#c29960'; ctx.lineWidth = 1;
+          ctx.beginPath();ctx.moveTo(x+11,340);ctx.lineTo(x+1,347);
+          ctx.moveTo(x+32,341);ctx.lineTo(x+29,348);ctx.stroke();
+          [[8,22,4],[17,37,5],[38,32,4],[4,40,4]].forEach(([mx,my,r]) => {
+            ctx.fillStyle = '#496e2d'; ctx.beginPath(); ctx.ellipse(x+mx,top+my,r+2,r*1.2,0.3,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#87a744'; ctx.beginPath(); ctx.ellipse(x+mx-1,top+my-2,r,r*0.8,0.3,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#b4c568'; ctx.beginPath(); ctx.arc(x+mx-2,top+my-3,1,0,Math.PI*2);ctx.fill();
           });
         }
       });
