@@ -11,7 +11,8 @@ export function createDistantDragon() {
     const cellHeight = sprite.naturalHeight / 2;
     const width = 165;
     const height = width * cellHeight / cellWidth;
-    const x = ((distance * 1.03 + 450) % 1400 + 1400) % 1400 - 200;
+    const appearanceInterval = 1400 / 0.3;
+    const x = ((distance * 1.03 + 450) % appearanceInterval + appearanceInterval) % appearanceInterval - 200;
     const smooth = (value: number) => {
       const t = Math.max(0, Math.min(1, value));
       return t * t * (3 - 2 * t);

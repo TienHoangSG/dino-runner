@@ -1,3 +1,51 @@
-*{box-sizing:border-box}body{margin:0;background:#f5f3eb;color:#244a3d;font-family:'DM Sans',sans-serif}main{max-width:1120px;margin:auto;padding:32px 40px}header{display:flex;align-items:center;justify-content:space-between}.brand{font-size:28px;font-weight:700;letter-spacing:-1.6px;color:inherit;text-decoration:none}.brand span{color:#bd7048;margin-left:8px}.tag{font-size:12px;color:#788176}.intro{padding:65px 0 36px}.eyebrow{font-size:10px;letter-spacing:3px;font-weight:700;color:#a46a48}h1{font-family:'Instrument Serif',Georgia,serif;font-size:64px;line-height:1.02;font-weight:400;letter-spacing:-2px;margin:18px 0}h1 em{color:#82947b}.intro>p:last-child{font-size:14px;line-height:1.8;color:#758174}.game{border:1px solid #d8ded0;border-radius:14px;overflow:hidden;background:#faf9f3;box-shadow:0 20px 50px #284c410a}.scorebar{padding:20px 24px;display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:1.4px}.scorebar>span:before{content:'●';color:#83a067;margin-right:8px}.scorebar strong{font-size:18px;letter-spacing:2px;margin-left:9px}.scorebar div>span{margin-left:26px;color:#8c9689}.stage{position:relative;touch-action:none;cursor:pointer}canvas{display:block;width:100%;height:auto}.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f5e8cd35;text-align:center}.overlay>div{padding:20px 35px;background:#f8f3e6ed;border:1px solid #ffffff70;border-radius:12px}h2{font-family:'Instrument Serif',Georgia,serif;font-size:32px;font-weight:400;margin:0 0 20px}button{background:#254f40;color:#f4f2e7;border:0;border-radius:6px;padding:13px 25px;font:inherit;font-size:13px;cursor:pointer}.controls{padding:18px 24px;display:flex;justify-content:space-between;color:#7a8375;font-size:11px}kbd{display:inline-block;padding:5px 8px;border:1px solid #d6dbcf;border-radius:4px;font-size:10px;margin-right:3px}footer{display:flex;justify-content:space-between;margin:27px 0;font-size:10px;color:#939c8c}footer span:last-child{letter-spacing:2px}@media(max-width:600px){main{padding:22px 16px}.tag{display:none}.intro{padding-top:45px}h1{font-size:46px}.controls{gap:12px;flex-direction:column}.scorebar{padding:16px 12px}.scorebar div>span{margin-left:12px}.scorebar strong{font-size:15px}.overlay>div{padding:12px 20px}h2{font-size:24px;margin-bottom:12px}button{padding:10px 20px}}
-.level{padding:14px 24px 0;color:#a46a48;font-size:11px;letter-spacing:1px}.touch-controls{display:flex;gap:12px;padding:0 24px 20px}.touch-controls button{touch-action:none;user-select:none;flex:1}.touch-controls button:active{background:#b46938}
-.restart-button{display:block;margin:12px auto 0;background:transparent;color:#254f40;border:1px solid #9fae98}
+* { box-sizing: border-box; }
+body { margin: 0; background: #f2f1e8; color: #244a3d; font-family: 'DM Sans', system-ui, sans-serif; }
+main { max-width: 1280px; margin: auto; padding: 24px 40px; }
+header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid #d9dece; }
+.brand { font-size: 27px; font-weight: 750; letter-spacing: -1.5px; color: inherit; text-decoration: none; }
+.brand span { color: #bd7048; margin-left: 8px; }
+.tag { font-size: 12px; color: #788176; }
+.intro { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 28px 0 24px; }
+.eyebrow { font-size: 10px; letter-spacing: 3px; font-weight: 700; color: #a46a48; margin: 0 0 9px; }
+h1 { font-family: Georgia, serif; font-size: clamp(30px, 3.8vw, 46px); line-height: 1.1; font-weight: 400; letter-spacing: -1.5px; margin: 0; }
+h1 em { color: #82947b; }
+.intro > p { font-size: 12px; line-height: 1.8; color: #758174; margin: 0; }
+.game { margin-top: 24px; border: 1px solid #d1dac6; border-radius: 18px; overflow: hidden; background: #faf9f3; box-shadow: 0 18px 45px #284c4110; }
+.level { padding: 15px 24px 0; color: #8b684b; font-size: 11px; letter-spacing: .4px; }
+.scorebar { padding: 14px 24px 18px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: 1px; }
+.scorebar > span:before { content: '●'; color: #83a067; margin-right: 8px; }
+.scorebar strong { font-size: 23px; letter-spacing: 2px; margin-left: 9px; font-variant-numeric: tabular-nums; }
+.scorebar div > span { margin-left: 26px; color: #8c9689; }
+.stage { position: relative; touch-action: none; cursor: pointer; }
+canvas { display: block; width: 100%; height: auto; }
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #f5e8cd15; text-align: center; }
+.overlay > div { padding: 24px 36px; background: #f8f3e6f0; border: 1px solid #ffffffa0; border-radius: 14px; box-shadow: 0 10px 30px #284c4110; }
+h2 { font-family: Georgia, serif; font-size: 30px; font-weight: 400; margin: 0 0 20px; }
+button { background: #254f40; color: #f4f2e7; border: 0; border-radius: 8px; padding: 13px 25px; font: inherit; font-size: 13px; cursor: pointer; }
+button:hover { background: #38634c; }
+button:focus-visible { outline: 3px solid #bd7048; outline-offset: 3px; }
+.controls { padding: 18px 24px 12px; display: flex; justify-content: center; gap: 36px; color: #7a8375; font-size: 11px; }
+kbd { display: inline-block; padding: 5px 8px; border: 1px solid #d6dbcf; border-radius: 4px; font-size: 10px; margin-right: 3px; background: #fffdf6; }
+.touch-controls { display: flex; gap: 12px; padding: 0 24px 20px; max-width: 500px; margin: auto; }
+.touch-controls button { touch-action: none; user-select: none; flex: 1; background: #e7ecdd; color: #254f40; }
+.touch-controls button:active { background: #254f40; color: #fff; }
+.restart-button { display: block; margin: 12px auto 0; background: transparent; color: #254f40; border: 1px solid #9fae98; }
+footer { display: flex; justify-content: space-between; margin: 20px 0 0; font-size: 10px; color: #939c8c; }
+footer span:last-child { letter-spacing: 2px; }
+@media (max-width: 600px) {
+  main { padding: 16px 12px; }
+  header { padding-bottom: 14px; }
+  .tag, .intro > p { display: none; }
+  .intro { padding: 20px 4px; }
+  h1 { font-size: 31px; }
+  .game { border-radius: 12px; }
+  .level { padding: 12px 12px 0; font-size: 10px; }
+  .scorebar { padding: 12px; font-size: 9px; gap: 8px; }
+  .scorebar div > span { margin-left: 10px; }
+  .scorebar strong { font-size: 17px; margin-left: 4px; }
+  .overlay > div { padding: 12px 20px; }
+  h2 { font-size: 21px; margin-bottom: 12px; }
+  button { padding: 10px 16px; font-size: 12px; }
+  .controls { gap: 14px; padding: 14px 10px 10px; font-size: 10px; }
+  .touch-controls { padding: 0 12px 14px; }
+}

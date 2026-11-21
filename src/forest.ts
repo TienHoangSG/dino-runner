@@ -1,11 +1,11 @@
 type Plant = { x: number; kind: number; size: number; layer: number };
 
 export function createForest() {
-  return Array.from({ length: 24 }, (_, index): Plant => ({
-    x: (index % 12) * 125 + Math.random() * 70,
+  return Array.from({ length: 12 }, (_, index): Plant => ({
+    x: (index % 6) * 250 + Math.random() * 70,
     kind: Math.floor(Math.random() * 4),
     size: 0.65 + Math.random() * 0.55,
-    layer: Math.floor(index / 12)
+    layer: Math.floor(index / 6)
   }));
 }
 
@@ -102,3 +102,4 @@ export function drawForest(ctx: CanvasRenderingContext2D, plants: Plant[], dista
     ctx.restore();
   });
 }
+

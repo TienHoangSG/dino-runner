@@ -231,7 +231,7 @@ function App() {
   }, []);
   return <main>
     <header><a href="./" className="brand">fern run<span>↗</span></a><span className="tag">Một chuyến chạy qua rừng cổ đại</span></header>
-    <section className="intro"><p className="eyebrow">DINO RUNNER</p><h1>Bước nhảy nhỏ.<br/><em>Cuộc phiêu lưu dài.</em></h1><p>Vượt qua núi lửa và gốc cây, đuổi theo hoàng hôn.<br/>Bạn sẽ chạy được bao xa?</p></section>
+
     <section className="game">
       <div className="level">CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm · Còn {continues} lượt tiếp tục</div>
       <div className="scorebar"><span>{phase === 'playing' ? 'ĐANG CHẠY' : phase === 'revive' ? 'CÒN MỘT CƠ HỘI' : phase === 'over' ? 'KẾT THÚC' : phase === 'paused' ? 'TẠM DỪNG' : 'SẴN SÀNG'}</span><div>ĐIỂM <strong>{String(score).padStart(4,'0')}</strong><span>KỶ LỤC <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
@@ -239,12 +239,14 @@ function App() {
         <canvas ref={canvas} width="1000" height="420" aria-label="Game T-rex nhảy qua núi lửa và đá" />
         {phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'revive' ? 'Bạn còn một mạng!' : phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button>{phase === 'revive' ? 'Tiếp tục với điểm hiện tại ↗' : phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button>{phase === 'revive' && <button className="restart-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); restart.current(); }}>Bắt đầu lại từ đầu ↻</button>}</div></div>}
       </div>
-      <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi né Pterosaur bay cao, nhảy qua khi bay thấp</span></div>
+      <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi</span></div>
       <div className="touch-controls">
         <button onClick={() => action.current()}>Nhảy ↑</button>
         <button onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); duck.current = true; }} onPointerUp={() => { duck.current = false; }} onPointerCancel={() => { duck.current = false; }} onLostPointerCapture={() => { duck.current = false; }}>Giữ để cúi ↓</button>
       </div>
-    </section><footer><span>Chạy. Nhảy. Và đi xa hơn một chút.</span><span>REACT × CANVAS</span></footer>
+    </section>
+    <section className="intro"><div><p className="eyebrow">DINO RUNNER</p><h1>Chạy vào <em>kỷ tiền sử.</em></h1></div><p>Nhảy qua vật cản. Cúi né Pterosaur.<br/>Lập kỷ lục của riêng bạn.</p></section>
+    <footer><span>Mỗi 500 điểm, cuộc đua nhanh hơn.</span><span>FERN RUN</span></footer>
   </main>;
 }
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
