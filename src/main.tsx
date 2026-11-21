@@ -9,6 +9,20 @@ import { canPterosaurJump, pterosaurLandingHeight } from './jump';
 function App() {
   const gameContainer = useRef<HTMLElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [rotateLayout, setRotateLayout] = useState(false);
+  useEffect(() => {
+    const updateOrientation = () => {
+      const touchDevice = navigator.maxTouchPoints > 0 && window.matchMedia('(pointer: coarse)').matches;
+      setRotateLayout(touchDevice && window.innerHeight > window.innerWidth);
+    };
+    updateOrientation();
+    window.addEventListener('resize', updateOrientation);
+    screen.orientation?.addEventListener('change', updateOrientation);
+    return () => {
+      window.removeEventListener('resize', updateOrientation);
+      screen.orientation?.removeEventListener('change', updateOrientation);
+    };
+  }, []);
   const canvas = useRef<HTMLCanvasElement>(null);
   const action = useRef(() => { /* Initialized by the game effect. */ });
   const duck = useRef(false);
@@ -38,6 +52,7 @@ function App() {
   const toggleFullscreen = async () => {
     if (expanded) {
       if (document.fullscreenElement) await document.exitFullscreen();
+      screen.orientation?.unlock?.();
       setExpanded(false);
       return;
     }
@@ -277,9 +292,9 @@ function App() {
   return <main>
     <header><a href="./" className="brand">fern run<span>↗</span></a><span className="tag">Một chuyến chạy qua rừng cổ đại</span></header>
 
-    <section ref={gameContainer} className={expanded ? "game expanded" : "game"}>
+    <section ref={gameContainer} className={expanded ? `game expanded${rotateLayout ? " force-landscape" : ""}` : "game"}>
 
-      {expanded && <p className="rotate-hint">Xoay điện thoại nằm ngang để chơi thoải mái hơn.</p>}
+
       <div className="level">CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm</div>
       <div className="scorebar"><span>{phase === 'playing' ? 'ĐANG CHẠY' : phase === 'over' ? 'KẾT THÚC' : phase === 'paused' ? 'TẠM DỪNG' : 'SẴN SÀNG'}</span><div>ĐIỂM <strong>{String(score).padStart(4,'0')}</strong><span>KỶ LỤC <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
       <div className="stage" onPointerDown={e => { e.preventDefault(); action.current(); }}>

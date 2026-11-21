@@ -74,3 +74,22 @@ footer span:last-child { letter-spacing: 2px; }
   .expanded .touch-controls { padding-right:76px; }
   .expanded .scorebar { padding-right:16px; }
 }
+/* Portrait touch screens get a landscape layout when orientation lock is unavailable. */
+.game.expanded.force-landscape {
+  inset:auto;
+  left:50%;
+  top:50%;
+  width:100dvh;
+  height:100dvw;
+  transform:translate(-50%,-50%) rotate(90deg);
+  transform-origin:center;
+}
+.force-landscape .level, .force-landscape .controls { display:none; }
+.force-landscape .scorebar { padding:8px 16px; }
+.force-landscape .touch-controls {
+  position:absolute; bottom:0; left:0; max-width:none; justify-content:space-between;
+  pointer-events:none; padding:8px 76px 8px 20px; z-index:3;
+}
+.force-landscape .touch-controls button { flex:none; min-width:110px; padding:15px 20px; pointer-events:auto; opacity:.9; }
+.force-landscape .fullscreen-button { bottom:12px; right:12px; }
+.force-landscape .overlay > div { padding:14px 24px; }
