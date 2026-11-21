@@ -35,7 +35,7 @@ function App() {
   const gesture = useRef<{ id: number; x: number; y: number; direction: string | null } | null>(null);
   const [phase, setPhase] = useState('ready');
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => {
-    try { return backgroundModeFromStored(localStorage.getItem('fern-background')); } catch { return 'detailed'; }
+    try { return backgroundModeFromStored(localStorage.getItem('fern-background')); } catch { return 'simple'; }
   });
   const detailedBackground = useRef(backgroundMode === 'detailed');
   const [score, setScore] = useState(0);

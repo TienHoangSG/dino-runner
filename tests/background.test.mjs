@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { backgroundModeFromStored } from '../src/background.ts';
 
-test('detailed background is the safe default', () => {
-  assert.equal(backgroundModeFromStored(null), 'detailed');
-  assert.equal(backgroundModeFromStored('anything-else'), 'detailed');
+test('simple background is the default', () => {
+  assert.equal(backgroundModeFromStored(null), 'simple');
+  assert.equal(backgroundModeFromStored('anything-else'), 'simple');
 });
 
-test('simple background restores only when explicitly selected', () => {
-  assert.equal(backgroundModeFromStored('simple'), 'simple');
+test('detailed background restores only when explicitly selected', () => {
+  assert.equal(backgroundModeFromStored('detailed'), 'detailed');
 });
