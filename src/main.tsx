@@ -4,16 +4,52 @@ import './style.css';
 import { createForest, drawForest } from './forest';
 import { drawGround } from './ground';
 import { createDistantDragon } from './dragon';
+import { canPterosaurJump, pterosaurLandingHeight } from './jump';
 
 function App() {
+  const gameContainer = useRef<HTMLElement>(null);
+  const [expanded, setExpanded] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
   const action = useRef(() => { /* Initialized by the game effect. */ });
-  const restart = useRef(() => { /* Initialized by the game effect. */ });
   const duck = useRef(false);
   const [phase, setPhase] = useState('ready');
-  const [continues, setContinues] = useState(1);
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => { try { return Number(localStorage.getItem('fern-best')) || 0; } catch { return 0; } });
+  useEffect(() => {
+    const syncFullscreen = () => {
+      setExpanded(document.fullscreenElement === gameContainer.current);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.code === 'Escape' && !document.fullscreenElement) setExpanded(false);
+    };
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    window.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreen);
+      window.removeEventListener('keydown', escape);
+    };
+  }, []);
+  useEffect(() => {
+    if (!expanded) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [expanded]);
+  const toggleFullscreen = async () => {
+    if (expanded) {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      setExpanded(false);
+      return;
+    }
+    setExpanded(true);
+    try {
+      if (gameContainer.current?.requestFullscreen) {
+        await gameContainer.current.requestFullscreen();
+        const orientation = screen.orientation as ScreenOrientation & { lock?: (value: string) => Promise<void> };
+        try { await orientation.lock?.('landscape'); } catch { /* Manual rotation remains available. */ }
+      }
+    } catch { /* The expanded layout also works when native fullscreen is unavailable. */ }
+  };
   useEffect(() => {
     const ctx = canvas.current!.getContext('2d')!;
     const forest = createForest();
@@ -24,7 +60,8 @@ function App() {
     const pterosaur = new Image();
     pterosaur.src = '/pterosaur-orange-flight.png';
     let animationTime = 0;
-    let continueAvailable = true;
+    let extraJumpUsed = false;
+    let jumpPulse = 0;
     let obstaclePair: boolean[] = [];
     let nextVolcano = Math.random() < 0.5;
     let obstacles: { x: number; w: number; h: number; volcano: boolean; flying: boolean; flightY: number; flightMode: number; size: number }[] = [];
@@ -54,24 +91,15 @@ function App() {
     };
     const change = (value: string) => { mode = value; setPhase(value); };
     action.current = () => {
-      if (mode === 'revive') {
-        continueAvailable = false;
-        setContinues(0);
-        duck.current = false;
-        y = 0;
-        velocity = 0;
-        obstacles = [];
-        wait = 2;
-        change('playing');
-        return;
-      }
       if (mode === 'paused') { change('playing'); return; }
-      if (mode !== 'playing') { continueAvailable = true; setContinues(1); duck.current = false; y = 0; velocity = 0; distance = 0; speed = 280; wait = 1.5; obstacles = []; obstaclePair = []; nextVolcano = Math.random() < 0.5; setScore(0); change('playing'); }
-      if (y === 0 && !duck.current) velocity = 650;
-    };
-    restart.current = () => {
-      change('ready');
-      action.current();
+      if (mode !== 'playing') { extraJumpUsed = false; jumpPulse = 0; duck.current = false; y = 0; velocity = 0; distance = 0; speed = 280; wait = 1.5; obstacles = []; obstaclePair = []; nextVolcano = Math.random() < 0.5; setScore(0); change('playing'); }
+      if (y === 0 && !duck.current) {
+        velocity = 650;
+      } else if (canPterosaurJump(y, extraJumpUsed, obstacles)) {
+        velocity = 650;
+        extraJumpUsed = true;
+        jumpPulse = 0.28;
+      }
     };
     const key = (event: KeyboardEvent) => { if (['Space', 'ArrowUp'].includes(event.code) && !event.repeat) { event.preventDefault(); action.current(); } };
     const down = (event: KeyboardEvent) => { if (event.code === 'ArrowDown') { event.preventDefault(); duck.current = true; } };
@@ -88,7 +116,9 @@ function App() {
       if (mode === 'playing') {
         animationTime += dt * speed / 280;
         distance += speed * dt; speed = Math.min(680, 280 + Math.floor(distance / 5000) * 40);
-        velocity -= 1750 * dt; y = Math.max(0, y + velocity * dt); if (y === 0) velocity = 0;
+        const previousHeight = y;
+        velocity -= 1750 * dt; y = Math.max(0, y + velocity * dt); if (y === 0) { velocity = 0; extraJumpUsed = false; }
+        jumpPulse = Math.max(0, jumpPulse - dt);
         wait -= dt;
         if (wait <= 0) {
           // A shuffled pair keeps air and ground balanced, with runs capped at two.
@@ -110,6 +140,11 @@ function App() {
         }
         obstacles.forEach(o => o.x -= speed * dt);
         obstacles = obstacles.filter(o => o.x > -80);
+        const landingHeight = pterosaurLandingHeight(previousHeight, y, velocity, obstacles);
+        if (landingHeight !== null) {
+          y = landingHeight;
+          velocity = 0;
+        }
         setScore(Math.floor(distance / 10));
         const crouching = duck.current && y === 0;
         const playerTop = 350 - y - (crouching ? 29 : 65);
@@ -124,7 +159,7 @@ function App() {
           return playerTop < bottom && 346 - y > top;
         })) {
           duck.current = false;
-          change(continueAvailable ? 'revive' : 'over');
+          change('over');
           const result = Math.floor(distance / 10);
           setBest(previous => { const next = Math.max(previous, result); try { localStorage.setItem('fern-best', String(next)); } catch { /* Storage may be unavailable. */ } return next; });
         }
@@ -205,6 +240,16 @@ function App() {
         }
       });
       const base = 350-y;
+      if (jumpPulse > 0) {
+        ctx.save();
+        ctx.globalAlpha = jumpPulse / 0.28;
+        ctx.strokeStyle = '#fff2be';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(140, base + 4, 12 + (0.28 - jumpPulse) * 60, 4, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
       ctx.fillStyle = '#173f3630';
       ctx.beginPath(); ctx.ellipse(139,350,34-y*0.05,5,0,0,Math.PI*2); ctx.fill();
       const crouching = duck.current && y === 0;
@@ -232,12 +277,15 @@ function App() {
   return <main>
     <header><a href="./" className="brand">fern run<span>↗</span></a><span className="tag">Một chuyến chạy qua rừng cổ đại</span></header>
 
-    <section className="game">
-      <div className="level">CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm · Còn {continues} lượt tiếp tục</div>
-      <div className="scorebar"><span>{phase === 'playing' ? 'ĐANG CHẠY' : phase === 'revive' ? 'CÒN MỘT CƠ HỘI' : phase === 'over' ? 'KẾT THÚC' : phase === 'paused' ? 'TẠM DỪNG' : 'SẴN SÀNG'}</span><div>ĐIỂM <strong>{String(score).padStart(4,'0')}</strong><span>KỶ LỤC <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
+    <section ref={gameContainer} className={expanded ? "game expanded" : "game"}>
+
+      {expanded && <p className="rotate-hint">Xoay điện thoại nằm ngang để chơi thoải mái hơn.</p>}
+      <div className="level">CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm</div>
+      <div className="scorebar"><span>{phase === 'playing' ? 'ĐANG CHẠY' : phase === 'over' ? 'KẾT THÚC' : phase === 'paused' ? 'TẠM DỪNG' : 'SẴN SÀNG'}</span><div>ĐIỂM <strong>{String(score).padStart(4,'0')}</strong><span>KỶ LỤC <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
       <div className="stage" onPointerDown={e => { e.preventDefault(); action.current(); }}>
         <canvas ref={canvas} width="1000" height="420" aria-label="Game T-rex nhảy qua núi lửa và đá" />
-        {phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'revive' ? 'Bạn còn một mạng!' : phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button>{phase === 'revive' ? 'Tiếp tục với điểm hiện tại ↗' : phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button>{phase === 'revive' && <button className="restart-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); restart.current(); }}>Bắt đầu lại từ đầu ↻</button>}</div></div>}
+        {phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button>{phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button></div></div>}
+        <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"} title={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
       </div>
       <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi</span></div>
       <div className="touch-controls">

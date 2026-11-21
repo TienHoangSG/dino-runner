@@ -1,1 +1,27 @@
-{"name":"dino-runner","version":"0.1.0","type":"module","main":"index.html","scripts":{"dev":"vite","lint":"eslint . --ext .ts,.tsx","build":"vite build"},"dependencies":{"react":"^18.2.0","react-dom":"^18.2.0"},"devDependencies":{"@types/react":"^18.3.31","@types/react-dom":"^18.3.7","@typescript-eslint/eslint-plugin":"^5.8.0","@typescript-eslint/parser":"^5.8.0","@vitejs/plugin-react":"^4.7.0","eslint":"^8.56.0","prettier":"^3.2.4","typescript":"^5.2.2","vite":"^5.3.0"}}
+{
+  "name": "dino-runner",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "lint": "eslint . --ext .ts,.tsx",
+    "build": "vite build",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@typescript-eslint/eslint-plugin": "^5.8.0",
+    "@typescript-eslint/parser": "^5.8.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.3.0"
+  }
+}
