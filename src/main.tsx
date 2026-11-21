@@ -332,18 +332,9 @@ function App() {
         <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"} title={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
       </div>
       <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi</span></div>
-      <div className="touch-controls">
-        <button onPointerDown={event => {
-          if (event.button !== 0) return;
-          event.preventDefault();
-          action.current();
-        }} onClick={event => {
-          // Keyboard and assistive activation has no preceding pointer press.
-          if (event.detail === 0) action.current();
-        }}>Nhảy ↑</button>
-        <button onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); duck.current = true; }} onPointerUp={() => { duck.current = false; }} onPointerCancel={() => { duck.current = false; }} onLostPointerCapture={() => { duck.current = false; }}>Giữ để cúi ↓</button>
-      </div>
+
     </section>
+    <p className="swipe-guide">Vuốt lên để nhảy · Vuốt xuống và giữ để cúi · Nhấc tay để đứng lên</p>
     <section className="intro"><div><p className="eyebrow">DINO RUNNER</p><h1>Chạy vào <em>kỷ tiền sử.</em></h1></div><p>Nhảy qua vật cản. Cúi né Pterosaur.<br/>Lập kỷ lục của riêng bạn.</p></section>
     <footer><span>Mỗi 500 điểm, cuộc đua nhanh hơn.</span><span>FERN RUN</span></footer>
   </main>;
