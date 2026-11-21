@@ -4,6 +4,7 @@ import './style.css';
 import { createForest, drawForest } from './forest';
 import { drawGround } from './ground';
 import { createDistantDragon } from './dragon';
+import { swipeDirection } from './swipe';
 import { canPterosaurJump, pterosaurLandingHeight } from './jump';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const action = useRef(() => { /* Initialized by the game effect. */ });
   const duck = useRef(false);
+  const gesture = useRef<{ id: number; x: number; y: number; direction: string | null } | null>(null);
   const [phase, setPhase] = useState('ready');
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => { try { return Number(localStorage.getItem('fern-best')) || 0; } catch { return 0; } });
@@ -303,7 +305,28 @@ function App() {
 
       <div className="level">CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm</div>
       <div className="scorebar"><span>{phase === 'playing' ? 'ĐANG CHẠY' : phase === 'over' ? 'KẾT THÚC' : phase === 'paused' ? 'TẠM DỪNG' : 'SẴN SÀNG'}</span><div>ĐIỂM <strong>{String(score).padStart(4,'0')}</strong><span>KỶ LỤC <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
-      <div className="stage" onPointerDown={e => { e.preventDefault(); action.current(); }}>
+      <div className="stage" onPointerDown={event => {
+        if (!event.isPrimary || event.button !== 0) return;
+        event.preventDefault();
+        if (event.pointerType === 'mouse') { action.current(); return; }
+        gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, direction: null };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }} onPointerMove={event => {
+        const current = gesture.current;
+        if (!current || current.id !== event.pointerId || current.direction) return;
+        const direction = swipeDirection(event.clientX - current.x, event.clientY - current.y, expanded && rotateLayout);
+        if (!direction) return;
+        current.direction = direction;
+        if (direction === 'jump') action.current();
+        else duck.current = true;
+      }} onPointerUp={event => {
+        const current = gesture.current;
+        if (!current || current.id !== event.pointerId) return;
+        gesture.current = null;
+        if (current.direction === 'duck') duck.current = false;
+        else if (!current.direction) action.current();
+      }} onPointerCancel={() => { gesture.current = null; duck.current = false; }}
+      onLostPointerCapture={() => { gesture.current = null; duck.current = false; }}>
         <canvas ref={canvas} width="1000" height="420" aria-label="Game T-rex nhảy qua núi lửa và đá" />
         {phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button>{phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button></div></div>}
         <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"} title={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
