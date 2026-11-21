@@ -96,6 +96,8 @@ function App() {
     pterosaur.src = '/pterosaur-orange-flight.png';
     const mountainLandscape = new Image();
     mountainLandscape.src = '/prehistoric-mountain-valley.png';
+    const mountainPass = new Image();
+    mountainPass.src = '/prehistoric-mountain-pass.png';
     let animationTime = 0;
     let extraJumpUsed = false;
     let jumpPulse = 0;
@@ -218,7 +220,15 @@ function App() {
         });
       }
       drawDragon(ctx, animationTime, distance);
-      if (detailed) drawMidground(ctx, distance);
+      if (detailed) {
+        if (mountainPass.complete && mountainPass.naturalWidth) {
+          ctx.save();
+          ctx.globalAlpha = 0.78;
+          ctx.drawImage(mountainPass, 0, 0, 1000, 420);
+          ctx.restore();
+        }
+        drawMidground(ctx, distance);
+      }
       drawForest(ctx, forest, distance);
       drawGround(ctx, distance);
       const polygon = (points: number[][], color: string) => {
