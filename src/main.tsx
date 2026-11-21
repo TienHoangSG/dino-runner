@@ -6,6 +6,7 @@ import { drawGround } from './ground';
 import { createDistantDragon } from './dragon';
 import { swipeDirection } from './swipe';
 import { canPterosaurJump, pterosaurLandingHeight } from './jump';
+import { hitsGroundObstacle } from './collision';
 
 function App() {
   const gameContainer = useRef<HTMLElement>(null);
@@ -172,13 +173,14 @@ function App() {
         const crouching = duck.current && y === 0;
         const playerTop = 350 - y - (crouching ? 29 : 65);
         if (obstacles.some(o => {
-          const left = o.flying ? o.x + 29 - 22 * o.size : o.x + 6;
-          const right = o.flying ? o.x + 29 + 22 * o.size : o.x + o.w - 6;
+          if (!o.flying) return hitsGroundObstacle({ left: 120, right: 170, top: playerTop, bottom: 346 - y }, o);
+          const left = o.x + 29 - 22 * o.size;
+          const right = o.x + 29 + 22 * o.size;
           if (170 <= left || 120 >= right) return false;
           // Use spatial overlap for every flight height, including during jumps.
           const bob = 0;
-          const top = o.flying ? o.flightY + bob - 9 * o.size : 350 - o.h + 5;
-          const bottom = o.flying ? o.flightY + bob + 7 * o.size : 350;
+          const top = o.flightY + bob - 9 * o.size;
+          const bottom = o.flightY + bob + 7 * o.size;
           return playerTop < bottom && 346 - y > top;
         })) {
           duck.current = false;
