@@ -226,7 +226,7 @@ function App() {
       if (detailed) {
         if (mountainPass.complete && mountainPass.naturalWidth) {
           ctx.save();
-          ctx.globalAlpha = 0.78;
+          ctx.globalAlpha = 0.58;
           ctx.drawImage(mountainPass, 0, 0, 1000, 420);
           ctx.restore();
         }

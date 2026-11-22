@@ -34,7 +34,7 @@ npm run build
 | `src/restart.ts` | Quy tắc 5 giây sau khi chết. |
 | `src/background.ts` | Đọc lựa chọn nền đã lưu; mặc định `simple`. |
 | `src/forest.ts`, `src/ground.ts` | Cây nhiều lớp và mặt đất cỏ, đất, hóa thạch. |
-| `src/midground.ts` | Dãy núi trung cảnh trôi chậm trong nền Chi tiết; đường viền gợn nhẹ được nội suy liên tục. |
+| `src/midground.ts` | Lớp sương sáng và chân núi xanh lam nhạt của nền Chi tiết; đường viền rộng, ít chi tiết, trôi chậm liên tục. |
 | `src/dragon.ts` | Rồng xa trước mốc 2.001 điểm; MiG-31 thay rồng sau mốc đó. |
 | `src/ufo.ts` | Quy tắc 20% UFO, phóng to UFO cao nhất và hoạt ảnh đĩa bay. |
 | `public/` | Sprite T-rex, Pterosaur, rồng, MiG-31, UFO và các lớp nền. |
@@ -73,7 +73,7 @@ npm run build
 
 Theo thứ tự vẽ ở `main.tsx`: (1) nền, (2) rồng/MiG-31 xa, (3) chân núi và trung cảnh nếu bật Chi tiết, (4) cây, (5) mặt đất, (6) vật cản, (7) T-rex. Khi thay thứ tự phải kiểm tra vật cản không bị che hoặc trông như nằm sai lớp.
 
-- **Nền Đơn giản** là mặc định cho người mới: trời màu chuyển sắc, mặt trời và ba dải đồi hình sin. **Nền Chi tiết** vẽ `prehistoric-mountain-valley.png`, lớp chân núi trong suốt `prehistoric-mountain-pass.png`, và trung cảnh màu xanh ở `midground.ts` trôi theo `distance * 0.13`. Sau đó cả hai chế độ dùng chung cây và mặt đất. Lựa chọn lưu ở `fern-background`; giá trị `detailed` giữ Chi tiết, còn thiếu/khác thì dùng Đơn giản. Người đã chọn trước vẫn giữ thiết lập.
+- **Nền Đơn giản** là mặc định cho người mới: trời màu chuyển sắc, mặt trời và ba dải đồi hình sin. **Nền Chi tiết** vẽ `prehistoric-mountain-valley.png`, lớp chân núi trong suốt `prehistoric-mountain-pass.png` với độ mờ 0,58, rồi lớp sương và chân núi xanh lam dịu ở `midground.ts` trôi theo `distance * 0.055`. Trung cảnh cố ý ít chi tiết, không có đường viền sáng để nhân vật và vật cản dễ nhận ra khi chơi lâu. Sau đó cả hai chế độ dùng chung cây và mặt đất. Lựa chọn lưu ở `fern-background`; giá trị `detailed` giữ Chi tiết, còn thiếu/khác thì dùng Đơn giản. Người đã chọn trước vẫn giữ thiết lập.
 - T-rex dùng `trex-motion.png` 4 cột × 2 hàng: hàng trên chạy, hàng dưới cúi. Cột chạy đổi theo `animationTime * 11`; vị trí sprite không phải hộp va chạm.
 - Pterosaur dùng `pterosaur-orange-flight.png` 4 khung liên tiếp, tốc độ khung `animationTime * 4.5`. Các khung được căn theo mắt để thân/đầu không nảy quá nhiều; con lớn được giảm bão hòa và độ sáng.
 - UFO dùng `ufo-detailed.png`: lơ lửng khoảng 1,2 px, nghiêng nhẹ, đèn viền và vùng sáng quét. Tránh làm hình lệch quá xa vùng va chạm.
