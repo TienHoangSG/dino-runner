@@ -4,7 +4,9 @@ Tài liệu này mô tả **trạng thái mã nguồn hiện tại**. Khi thay �
 
 ## 1. Tổng quan và chạy dự án
 
-Fern Run là game chạy vô tận phía trình duyệt: React 18 + TypeScript + Vite, hình ảnh và chuyển động được vẽ bằng Canvas 2D. Không có backend, cơ sở dữ liệu hoặc tài khoản người chơi. Điểm cao và lựa chọn nền được lưu bằng `localStorage` trên từng trình duyệt.
+Fern Run là game chạy vô tận: React 18 + TypeScript + Vite vẽ bằng Canvas 2D. Bảng xếp hạng dùng API Cloudflare Pages Functions và D1; lựa chọn nền và tên người chơi được lưu bằng `localStorage` trên từng trình duyệt.
+
+Bảng xếp hạng dùng Pages Functions (`functions/api/leaderboard.js`) và Cloudflare D1 (`schema.sql`, `wrangler.jsonc`). Người chơi nhập tên trước ván đầu; tên lưu ở `fern-player-name` trên trình duyệt. Nút ở góc phải phía trên game mở bảng top 10 dạng hộp thoại; mở khi đang chạy sẽ tạm dừng game. API giữ điểm cao nhất theo tên và trả top 10. Tên không có tài khoản/mật khẩu, nên người khác có thể dùng cùng tên; điểm do client gửi nên có thể bị giả mạo. Không dùng bảng này cho giải thưởng hoặc phần thưởng có giá trị.
 
 ```sh
 npm ci
@@ -21,6 +23,8 @@ npm run build
 ```
 
 `dist/` là sản phẩm build. Các bài kiểm tra thuần logic nằm trong `tests/*.test.mjs`; Node 24 nhập trực tiếp các module `.ts` có thể loại bỏ kiểu.
+
+Để thử API bảng xếp hạng local: `npx --yes wrangler@4 d1 execute dino-runner-leaderboard --local --file=./schema.sql`, rồi `npm run dev:full` và mở `http://localhost:8788/`. Lệnh `npm run dev` vẫn chạy Vite để sửa UI nhanh, nhưng riêng API D1 không có ở cổng Vite.
 
 ## 2. Bản đồ mã nguồn
 
@@ -48,7 +52,7 @@ npm run build
 - `dt` được giới hạn tối đa **0,035 giây** mỗi khung. Khi game không ở trạng thái `playing`, vòng vẽ vẫn chạy nhưng vật lý, điểm và vật cản không cập nhật.
 - Độ cao nhảy là `y` (bằng 0 khi trên đất); vận tốc nhảy **650**, trọng lực **1750**. Chân nhân vật để xét va chạm ở `346 - y`.
 - `mode` nội bộ và `phase` của React có bốn giá trị: `ready`, `playing`, `paused`, `over`. Trạng thái gameplay và danh sách vật cản nằm trong effect ở `main.tsx`; thay đổi giao diện phản ánh qua React state. Rời tab hoặc mất focus sẽ tạm dừng.
-- Điểm cao được lưu dưới khóa `fern-best`. Chỉ có **một mạng**, không có tiếp tục sau va chạm.
+- Điểm cao trên máy được lưu theo tên dưới khóa `fern-best:<tên viết thường>`. Điểm cao chung được lưu trong D1. Chỉ có **một mạng**, không có tiếp tục sau va chạm.
 
 ## 4. Điều khiển và chơi lại
 

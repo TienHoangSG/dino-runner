@@ -10,8 +10,10 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 h1 { font-family: Georgia, serif; font-size: clamp(30px, 3.8vw, 46px); line-height: 1.1; font-weight: 400; letter-spacing: -1.5px; margin: 0; }
 h1 em { color: #82947b; }
 .intro > p { font-size: 12px; line-height: 1.8; color: #758174; margin: 0; }
-.game { margin-top: 24px; border: 1px solid #d1dac6; border-radius: 18px; overflow: hidden; background: #faf9f3; box-shadow: 0 18px 45px #284c4110; }
-.level { padding: 15px 24px 0; color: #8b684b; font-size: 11px; letter-spacing: .4px; }
+.game { position:relative; margin-top: 24px; border: 1px solid #d1dac6; border-radius: 18px; overflow: hidden; background: #faf9f3; box-shadow: 0 18px 45px #284c4110; }
+.level { padding: 15px 24px 0; color: #8b684b; font-size: 11px; letter-spacing: .4px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.leaderboard-button { padding:7px 11px; background:#e5eddd; color:#244a3d; border:1px solid #c7d6bd; border-radius:999px; font-size:11px; letter-spacing:0; white-space:nowrap; }
+.leaderboard-button:hover { background:#d6e6ce; }
 .scorebar { padding: 14px 24px 18px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: 1px; }
 .scorebar > span:before { content: '●'; color: #83a067; margin-right: 8px; }
 .scorebar strong { font-size: 23px; letter-spacing: 2px; margin-left: 9px; font-variant-numeric: tabular-nums; }
@@ -20,6 +22,14 @@ h1 em { color: #82947b; }
 canvas { display: block; width: 100%; height: auto; }
 .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: transparent; text-align: center; }
 .overlay > div { padding: 24px 36px; background: transparent; }
+.name-overlay { background:#173f3680; z-index:4; }
+.name-overlay form { display:grid; gap:10px; width:min(330px,88%); padding:24px; background:#f8f3e6; border-radius:16px; box-shadow:0 12px 32px #173f3660; }
+.name-overlay h2 { color:#244a3d; text-shadow:none; margin:0; }
+.name-overlay label { font-size:12px; color:#617062; }
+.name-overlay input { width:100%; padding:12px 14px; border:1px solid #a8b99d; border-radius:8px; background:#fffdf6; color:#244a3d; font-family:Georgia, serif; font-size:22px; letter-spacing:.2px; text-align:center; }
+.name-overlay input::placeholder { color:#9aa995; font-style:italic; }
+.name-overlay input:focus-visible { outline:2px solid #315c4a; }
+.name-overlay input { -webkit-user-select:text; user-select:text; }
 h2 { font-family: Georgia, serif; font-size: 30px; font-weight: 400; margin: 0 0 20px; color: #f8f3e6; text-shadow: 0 2px 10px #173f36b8; }
 button { background: #254f40; color: #f4f2e7; border: 0; border-radius: 8px; padding: 13px 25px; font: inherit; font-size: 13px; cursor: pointer; }
 button:hover { background: #38634c; }
@@ -29,6 +39,22 @@ button:focus-visible { outline: 3px solid #bd7048; outline-offset: 3px; }
 .background-options > span { margin-right:2px; }
 .background-options button { padding:6px 10px; border:1px solid #d6dbcf; border-radius:999px; background:#fffdf6; color:#617062; font-size:10px; }
 .background-options button.active { background:#315c4a; border-color:#315c4a; color:#f8f5e9; }
+.leaderboard-backdrop { position:absolute; inset:0; z-index:8; display:grid; place-items:center; padding:16px; background:#173f36a8; }
+.leaderboard-dialog { width:min(520px,100%); max-height:100%; overflow:auto; padding:22px 26px; border:1px solid #d1dac6; border-radius:18px; background:#faf9f3; box-shadow:0 20px 60px #132f2990; }
+.leaderboard-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.leaderboard-heading h2 { margin:0; color:#244a3d; text-shadow:none; font-size:24px; }
+.leaderboard-heading .eyebrow { margin-bottom:4px; }
+.leaderboard-close { width:32px; height:32px; padding:0; border-radius:50%; background:#e5eddd; color:#244a3d; font-size:25px; line-height:1; }
+.leaderboard-close:hover { background:#d6e6ce; }
+.leaderboard-dialog p { color:#758174; font-size:12px; }
+.leaderboard-player { margin:8px 0 14px; }
+.leaderboard-dialog ol { margin:0; padding:0; list-style:none; counter-reset:rank; }
+.leaderboard-dialog li { counter-increment:rank; display:grid; grid-template-columns:32px minmax(0,1fr) auto; align-items:center; gap:8px; padding:9px 11px; border-bottom:1px solid #e0e6d8; color:#244a3d; font-size:14px; }
+.leaderboard-dialog li::before { content:counter(rank,decimal-leading-zero); color:#a46a48; font-size:11px; font-weight:700; }
+.leaderboard-dialog li.current-player { background:#e5eddd; border-radius:7px; }
+.leaderboard-dialog li span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.leaderboard-dialog li strong { font-variant-numeric:tabular-nums; }
+.leaderboard-dialog p button { padding:5px 9px; font-size:11px; }
 kbd { display: inline-block; padding: 5px 8px; border: 1px solid #d6dbcf; border-radius: 4px; font-size: 10px; margin-right: 3px; background: #fffdf6; }
 footer { display: flex; justify-content: space-between; margin: 20px 0 0; font-size: 10px; color: #939c8c; }
 footer span:last-child { letter-spacing: 2px; }
@@ -40,6 +66,7 @@ footer span:last-child { letter-spacing: 2px; }
   h1 { font-size: 31px; }
   .game { border-radius: 12px; }
   .level { padding: 12px 12px 0; font-size: 10px; }
+  .leaderboard-button { font-size:10px; padding:6px 9px; }
   .scorebar { padding: 12px; font-size: 9px; gap: 8px; }
   .scorebar div > span { margin-left: 10px; }
   .scorebar strong { font-size: 17px; margin-left: 4px; }
@@ -48,6 +75,7 @@ footer span:last-child { letter-spacing: 2px; }
   button { padding: 10px 16px; font-size: 12px; }
   .controls { gap: 14px; padding: 14px 10px 10px; font-size: 10px; }
   .background-options { padding:0 10px 12px; }
+  .leaderboard-dialog { padding:16px; }
 }
 .rotate-hint { display:none; }
 .game.expanded, .game:fullscreen { position:fixed; inset:0; z-index:1000; width:100%; height:100dvh; max-width:none; margin:0; border:0; border-radius:0; display:flex; flex-direction:column; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background:#f2f1e8; overflow:hidden; }

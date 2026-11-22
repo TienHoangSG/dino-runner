@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dino-runner",
+  "pages_build_output_dir": "./dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dino-runner-leaderboard",
+      "database_id": "6e480880-dce1-4230-8936-72c94957c345"
+    }
+  ]
+}

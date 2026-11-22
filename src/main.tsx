@@ -11,6 +11,9 @@ import { hitsGroundObstacle } from './collision';
 import { drawUfo, shouldSpawnUfo, ufoScaleForFlightMode } from './ufo';
 import { backgroundModeFromStored, type BackgroundMode } from './background';
 import { canRestartAfterGameOver } from './restart';
+import { loadLeaderboard, saveBestScore, type Ranking } from './leaderboard';
+
+const bestKey = (name: string) => `fern-best:${name.toLocaleLowerCase('vi')}`;
 
 function App() {
   const gameContainer = useRef<HTMLElement>(null);
@@ -34,12 +37,53 @@ function App() {
   const duck = useRef(false);
   const gesture = useRef<{ id: number; x: number; y: number; direction: string | null } | null>(null);
   const [phase, setPhase] = useState('ready');
+  const [playerName, setPlayerName] = useState(() => { try { return localStorage.getItem('fern-player-name') || ''; } catch { return ''; } });
+  const [nameDraft, setNameDraft] = useState(playerName);
+  const playerNameRef = useRef(playerName);
+  const [rankings, setRankings] = useState<Ranking[]>([]);
+  const [rankingError, setRankingError] = useState('');
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const leaderboardOpenRef = useRef(false);
+  const pauseGame = useRef<() => void>(() => { /* Initialized by the game effect. */ });
+  const leaderboardButton = useRef<HTMLButtonElement>(null);
+  const closeLeaderboardButton = useRef<HTMLButtonElement>(null);
+  const refreshRankings = () => loadLeaderboard().then(entries => { setRankings(entries); setRankingError(''); }).catch(() => setRankingError('Bảng xếp hạng chưa khả dụng.'));
+  useEffect(() => { void refreshRankings(); }, []);
+  useEffect(() => {
+    if (!leaderboardOpen) return;
+    closeLeaderboardButton.current?.focus();
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { leaderboardOpenRef.current = false; setLeaderboardOpen(false); leaderboardButton.current?.focus(); }
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [leaderboardOpen]);
+  const openLeaderboard = () => {
+    pauseGame.current();
+    leaderboardOpenRef.current = true;
+    setLeaderboardOpen(true);
+    void refreshRankings();
+  };
+  const closeLeaderboard = () => {
+    leaderboardOpenRef.current = false;
+    setLeaderboardOpen(false);
+    leaderboardButton.current?.focus();
+  };
+  const savePlayerName = (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = nameDraft.trim().replace(/\s+/g, ' ');
+    if (!name || name.length > 24 || /[<>]/u.test(name) || Array.from(name).some(char => char.charCodeAt(0) < 32)) return;
+    playerNameRef.current = name;
+    setPlayerName(name);
+    try { setBest(Number(localStorage.getItem(bestKey(name))) || 0); } catch { setBest(0); }
+    try { localStorage.setItem('fern-player-name', name); } catch { /* Storage may be unavailable. */ }
+  };
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => {
     try { return backgroundModeFromStored(localStorage.getItem('fern-background')); } catch { return 'simple'; }
   });
   const detailedBackground = useRef(backgroundMode === 'detailed');
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(() => { try { return Number(localStorage.getItem('fern-best')) || 0; } catch { return 0; } });
+  const [best, setBest] = useState(() => { try { return Number(localStorage.getItem(bestKey(playerName))) || 0; } catch { return 0; } });
   useEffect(() => {
     const container = gameContainer.current;
     const preventSelection = (event: Event) => event.preventDefault();
@@ -130,7 +174,9 @@ function App() {
           }
     };
     const change = (value: string) => { mode = value; setPhase(value); };
+    pauseGame.current = () => { if (mode === 'playing') change('paused'); };
     action.current = (usedRestartButton = false) => {
+      if (!playerNameRef.current || leaderboardOpenRef.current) return;
       if (mode === 'paused') { change('playing'); return; }
       if (mode === 'over' && !canRestartAfterGameOver(performance.now() - gameOverAt, usedRestartButton)) return;
       if (mode !== 'playing') { extraJumpUsed = false; jumpPulse = 0; duck.current = false; y = 0; velocity = 0; distance = 0; speed = 280; wait = 1.5; obstacles = []; obstaclePair = []; nextVolcano = Math.random() < 0.5; setScore(0); change('playing'); }
@@ -142,7 +188,11 @@ function App() {
         jumpPulse = 0.28;
       }
     };
-    const key = (event: KeyboardEvent) => { if (['Space', 'ArrowUp'].includes(event.code) && !event.repeat) { event.preventDefault(); action.current(); } };
+    const key = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
+      if (['Space', 'ArrowUp'].includes(event.code) && !event.repeat) { event.preventDefault(); action.current(); }
+    };
     const down = (event: KeyboardEvent) => { if (event.code === 'ArrowDown') { event.preventDefault(); duck.current = true; } };
     const up = (event: KeyboardEvent) => { if (event.code === 'ArrowDown') duck.current = false; };
     const blur = () => { duck.current = false; if (mode === 'playing') change('paused'); };
@@ -206,7 +256,10 @@ function App() {
           gameOverAt = performance.now();
           change('over');
           const result = Math.floor(distance / 10);
-          setBest(previous => { const next = Math.max(previous, result); try { localStorage.setItem('fern-best', String(next)); } catch { /* Storage may be unavailable. */ } return next; });
+          setBest(previous => { const next = Math.max(previous, result); try { localStorage.setItem(bestKey(playerNameRef.current), String(next)); } catch { /* Storage may be unavailable. */ } return next; });
+          void saveBestScore(playerNameRef.current, result)
+            .then(() => refreshRankings())
+            .catch(() => setRankingError('Chưa lưu được điểm lên server. Hãy kiểm tra kết nối.'));
         }
       }
       const detailed = detailedBackground.current && mountainLandscape.complete && mountainLandscape.naturalWidth;
@@ -340,7 +393,7 @@ function App() {
     <section ref={gameContainer} onContextMenu={event => event.preventDefault()} onDragStart={event => event.preventDefault()} className={expanded ? `game expanded${rotateLayout ? " force-landscape" : ""}` : "game"}>
 
 
-      <div className="level">CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm</div>
+      <div className="level"><span>CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm</span><button ref={leaderboardButton} className="leaderboard-button" type="button" onClick={openLeaderboard} aria-haspopup="dialog" aria-expanded={leaderboardOpen}>★ Bảng xếp hạng</button></div>
       <div className="scorebar"><span>{phase === 'playing' ? 'ĐANG CHẠY' : phase === 'over' ? 'KẾT THÚC' : phase === 'paused' ? 'TẠM DỪNG' : 'SẴN SÀNG'}</span><div>ĐIỂM <strong>{String(score).padStart(4,'0')}</strong><span>KỶ LỤC <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
       <div className="stage" onPointerDown={event => {
         if (!event.isPrimary || event.button !== 0) return;
@@ -365,7 +418,7 @@ function App() {
       }} onPointerCancel={() => { gesture.current = null; duck.current = false; }}
       onLostPointerCapture={() => { gesture.current = null; duck.current = false; }}>
         <canvas ref={canvas} width="1000" height="420" aria-label="Game T-rex nhảy qua núi lửa và đá" />
-        {phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button onPointerDown={event => { event.stopPropagation(); action.current(true); }} onClick={event => event.stopPropagation()}>{phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button></div></div>}
+        {!playerName ? <div className="overlay name-overlay" onPointerDown={event => event.stopPropagation()}><form onSubmit={savePlayerName}><h2>Tên của bạn?</h2><label htmlFor="player-name">Nhập tên để tham gia bảng xếp hạng</label><input id="player-name" required maxLength={24} autoComplete="nickname" placeholder="Tên người chơi" value={nameDraft} onChange={event => setNameDraft(event.target.value)} /><button type="submit">Tiếp tục ↗</button></form></div> : phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button onPointerDown={event => { event.stopPropagation(); action.current(true); }} onClick={event => event.stopPropagation()}>{phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button></div></div>}
         <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"} title={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
       </div>
       <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi</span></div>
@@ -374,6 +427,8 @@ function App() {
         <button className={backgroundMode === 'detailed' ? 'active' : ''} aria-pressed={backgroundMode === 'detailed'} onClick={() => setBackgroundMode('detailed')}>Chi tiết</button>
         <button className={backgroundMode === 'simple' ? 'active' : ''} aria-pressed={backgroundMode === 'simple'} onClick={() => setBackgroundMode('simple')}>Đơn giản</button>
       </div>
+
+      {leaderboardOpen && <div className="leaderboard-backdrop" onClick={closeLeaderboard}><section className="leaderboard-dialog" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title" onClick={event => event.stopPropagation()}><div className="leaderboard-heading"><div><p className="eyebrow">FERN RUN · TOP 10</p><h2 id="leaderboard-title">Bảng xếp hạng</h2></div><button ref={closeLeaderboardButton} type="button" className="leaderboard-close" onClick={closeLeaderboard} aria-label="Đóng bảng xếp hạng">×</button></div><p className="leaderboard-player">{playerName ? `Người chơi: ${playerName}` : 'Hãy nhập tên để bắt đầu cuộc đua.'}</p>{rankingError && <p role="status">{rankingError} <button onClick={() => void refreshRankings()}>Thử lại</button></p>}<ol>{rankings.map((entry, index) => <li key={`${entry.name}-${index}`} className={entry.name.toLocaleLowerCase('vi') === playerName.toLocaleLowerCase('vi') ? 'current-player' : ''}><span>{entry.name}</span><strong>{entry.score}</strong></li>)}</ol>{!rankingError && rankings.length === 0 && <p>Chưa có điểm nào. Hãy là người đầu tiên!</p>}</section></div>}
 
     </section>
     <p className="swipe-guide">Vuốt lên để nhảy · Vuốt xuống và giữ để cúi · Nhấc tay để đứng lên</p>
