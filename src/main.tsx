@@ -414,7 +414,22 @@ function App() {
 
 
       <div className="game-toolbar">
-      <div className="level"><span className="level-copy">{t.level} {Math.floor(score / 500) + 1}<span className="speed-hint"> · {t.speedHint}</span></span><div className="game-options"><div className="background-options" role="group" aria-label={t.backgroundLabel}><span>{t.background}</span><select aria-label={t.backgroundLabel} value={backgroundMode} onChange={event => setBackgroundMode(event.target.value as BackgroundMode)}><option value="simple">{t.simple}</option><option value="detailed">{t.detailed}</option></select></div><div className="language-switch" role="group" aria-label={t.languageLabel}><button type="button" lang="vi" className={language === 'vi' ? 'active' : ''} aria-pressed={language === 'vi'} onClick={() => setLanguage('vi')}>VI</button><button type="button" lang="en" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button></div><button ref={leaderboardButton} className="leaderboard-button" type="button" onClick={openLeaderboard} aria-haspopup="dialog" aria-expanded={leaderboardOpen}>★ {t.leaderboard}</button></div></div>
+      <div className="level"><span className="level-copy">{t.level} {Math.floor(score / 500) + 1}<span className="speed-hint"> · {t.speedHint}</span></span><div className="game-options"><div className="background-options" role="group" aria-label={t.backgroundLabel}><span>{t.background}</span><div className="scene-choices">
+          {(['simple', 'detailed'] as const).map(mode => (
+            <button type="button" key={mode} aria-pressed={backgroundMode === mode}
+              onClick={() => setBackgroundMode(mode)}>
+              <span className={`scene-swatch ${mode}`} aria-hidden="true" />
+              {t[mode]}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="landscape-background" role="switch"
+          aria-checked={backgroundMode === 'detailed'}
+          aria-label={t.detailedBackground}
+          onClick={() => setBackgroundMode(mode => mode === 'simple' ? 'detailed' : 'simple')}>
+          {t.detailedBackground}<span className="switch-track" aria-hidden="true" />
+        </button>
+      </div><div className="language-switch" role="group" aria-label={t.languageLabel}><button type="button" lang="vi" className={language === 'vi' ? 'active' : ''} aria-pressed={language === 'vi'} onClick={() => setLanguage('vi')}>VI</button><button type="button" lang="en" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button></div><button ref={leaderboardButton} className="leaderboard-button" type="button" onClick={openLeaderboard} aria-haspopup="dialog" aria-expanded={leaderboardOpen}>★ {t.leaderboard}</button></div></div>
       <div className="scorebar"><span>{phase === 'playing' ? t.playing : phase === 'over' ? t.over : phase === 'paused' ? t.paused : t.ready}</span><div>{t.score} <strong>{String(score).padStart(4,'0')}</strong><span>{t.best} <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
       </div>
       <div className="stage" onPointerDown={event => {

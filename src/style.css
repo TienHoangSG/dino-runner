@@ -47,8 +47,6 @@ button:focus-visible { outline: 3px solid #bd7048; outline-offset: 3px; }
 .guide-touch, .guide-note { display:none; }
 .play-guide kbd { padding:2px 5px; font-size:9px; }
 .background-options { display:flex; align-items:center; gap:5px; color:#7a8375; font-size:10px; letter-spacing:0; }
-.background-options select { max-width:105px; padding:6px 8px; border:1px solid #d6dbcf; border-radius:999px; background:#fffdf6; color:#315c4a; font:inherit; cursor:pointer; }
-.background-options select:focus-visible { outline:3px solid #bd7048; outline-offset:3px; }
 .leaderboard-backdrop { position:absolute; inset:0; z-index:8; display:grid; place-items:center; padding:16px; background:#173f36a8; }
 .leaderboard-dialog { width:min(520px,100%); max-height:100%; overflow:auto; padding:22px 26px; border:1px solid #d1dac6; border-radius:18px; background:#faf9f3; box-shadow:0 20px 60px #132f2990; }
 .leaderboard-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
@@ -156,7 +154,6 @@ header { min-height:54px; padding-bottom:18px; border-color:var(--line); }
 .speed-hint { font-weight:500; letter-spacing:0; color:var(--muted); }
 .game-options { gap:8px; }
 .background-options { gap:8px; font-size:12px; color:var(--muted); }
-.background-options select { max-width:none; min-height:36px; padding:7px 28px 7px 11px; border-color:var(--line); border-radius:9px; background-color:#fff; color:var(--ink); font-size:12px; font-weight:700; }
 .language-switch { min-height:36px; padding:3px; border-color:var(--line); background:#eef2e8; }
 .language-switch button { min-width:36px; min-height:28px; font-size:11px; }
 .leaderboard-button { min-height:36px; padding:8px 13px; border-color:#c8d8bd; border-radius:9px; background:#edf3e8; color:var(--ink); font-size:12px; font-weight:700; }
@@ -215,7 +212,6 @@ button:active { transform:scale(.97); }
   .level-copy .speed-hint { display:inline; }
   .game-options { width:100%; justify-content:space-between; margin:0; gap:5px; }
   .background-options > span { display:none; }
-  .background-options select { min-height:38px; max-width:112px; padding-left:9px; font-size:12px; }
   .language-switch { min-height:38px; }
   .leaderboard-button { min-height:38px; padding:7px 9px; font-size:11px; }
   .scorebar { min-height:60px; padding:10px 12px; flex-wrap:wrap; gap:6px; }
@@ -238,7 +234,6 @@ button:active { transform:scale(.97); }
   .name-overlay input { font-size:20px; }
 }
 @media (max-width:360px) {
-  .background-options select { width:95px; max-width:95px; font-size:11px; }
   .language-switch button { min-width:30px; padding:5px 3px; }
   .leaderboard-button { padding:6px 7px; font-size:10px; }
   .scorebar { align-items:flex-start; }
@@ -250,7 +245,6 @@ button:active { transform:scale(.97); }
   .guide-item strong { font-size:12px; }
 }
 @media (pointer:coarse) {
-  .background-options select { font-size:16px; }
   .guide-note { margin-bottom:0; }
 }
 
@@ -281,4 +275,32 @@ button:active { transform:scale(.97); }
   display:grid; place-items:center; width:44px; height:44px; padding:0;
   border:1px solid #ffffff90; border-radius:11px; background:#f8f3e6e6;
   color:var(--ink); font:bold 22px/1 sans-serif;
+}
+
+.landscape-background {
+  display:none; align-items:center; gap:7px; min-height:44px; padding:0 9px;
+  border:1px solid var(--line); border-radius:9px; background:var(--surface);
+  color:var(--ink); font:inherit; font-weight:700; white-space:nowrap;
+}
+.switch-track { width:25px; height:15px; border-radius:10px; background:#778074; padding:2px; box-sizing:border-box; }
+.switch-track::before { content:''; display:block; width:11px; height:11px; border-radius:50%; background:white; }
+.landscape-background[aria-checked=true] .switch-track { background:var(--ink); }
+.landscape-background[aria-checked=true] .switch-track::before { transform:translateX(10px); }
+@media (pointer:coarse) and (orientation:landscape) and (max-height:600px) {
+  .background-options .scene-choices { display:none; }
+  .landscape-background { display:inline-flex; }
+}
+.force-landscape .background-options .scene-choices { display:none; }
+.force-landscape .landscape-background { display:inline-flex; }
+
+.scene-choices { display:flex; gap:3px; padding:3px; background:#eef2e8; border:1px solid var(--line); border-radius:12px; }
+.scene-choices button { display:flex; align-items:center; gap:6px; padding:4px 8px 4px 4px; min-height:36px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--ink); font:inherit; font-weight:600; white-space:nowrap; }
+.scene-choices button[aria-pressed=true] { background:var(--ink); color:white; }
+.scene-choices button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.scene-swatch { width:30px; height:25px; border-radius:5px; box-shadow:inset 0 0 0 1px #172e3322; }
+.scene-swatch.simple { background:radial-gradient(ellipse at 85% 120%, #527863 0 42%, transparent 44%), radial-gradient(ellipse at 20% 115%, #9da981 0 54%, transparent 56%), radial-gradient(circle at 70% 30%, #fff0be 0 11%, transparent 13%), #eac8ab; }
+.scene-swatch.detailed { background: #9fb596 url('/prehistoric-mountain-valley.png') center / cover; }
+@media (max-width:600px) {
+  .game-options { flex-wrap:wrap; }
+  .scene-choices button { min-height:44px; }
 }
