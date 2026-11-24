@@ -164,7 +164,12 @@ function App() {
     let nextLavaRock = Math.random() < 0.5;
     let obstacles: { x: number; w: number; h: number; tall: boolean; lavaRock: boolean; flying: boolean; ufo: boolean; flightY: number; flightMode: number; size: number; flapOffset: number }[] = [];
     const change = (value: string) => { mode = value; setPhase(value); };
-    pauseGame.current = () => { if (mode === 'playing') change('paused'); };
+    pauseGame.current = () => {
+      if (mode !== 'playing') return;
+      gesture.current = null;
+      duck.current = false;
+      change('paused');
+    };
     action.current = (usedRestartButton = false) => {
       if (!playerNameRef.current || leaderboardOpenRef.current) return;
       if (mode === 'paused') { change('playing'); return; }
@@ -181,6 +186,12 @@ function App() {
     const key = (event: KeyboardEvent) => {
       const target = event.target;
       if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
+      if (event.code === 'KeyP' && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey && !leaderboardOpenRef.current) {
+        if (mode === 'paused') action.current();
+        else pauseGame.current();
+        return;
+      }
+      if (target instanceof HTMLButtonElement && event.code === 'Space') return;
       if (['Space', 'ArrowUp'].includes(event.code) && !event.repeat) { event.preventDefault(); action.current(); }
     };
     const down = (event: KeyboardEvent) => { if (event.code === 'ArrowDown') { event.preventDefault(); duck.current = true; } };
@@ -402,8 +413,10 @@ function App() {
     <section ref={gameContainer} onContextMenu={event => event.preventDefault()} onDragStart={event => event.preventDefault()} className={expanded ? `game expanded${rotateLayout ? " force-landscape" : ""}` : "game"}>
 
 
+      <div className="game-toolbar">
       <div className="level"><span className="level-copy">{t.level} {Math.floor(score / 500) + 1}<span className="speed-hint"> · {t.speedHint}</span></span><div className="game-options"><div className="background-options" role="group" aria-label={t.backgroundLabel}><span>{t.background}</span><select aria-label={t.backgroundLabel} value={backgroundMode} onChange={event => setBackgroundMode(event.target.value as BackgroundMode)}><option value="simple">{t.simple}</option><option value="detailed">{t.detailed}</option></select></div><div className="language-switch" role="group" aria-label={t.languageLabel}><button type="button" lang="vi" className={language === 'vi' ? 'active' : ''} aria-pressed={language === 'vi'} onClick={() => setLanguage('vi')}>VI</button><button type="button" lang="en" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button></div><button ref={leaderboardButton} className="leaderboard-button" type="button" onClick={openLeaderboard} aria-haspopup="dialog" aria-expanded={leaderboardOpen}>★ {t.leaderboard}</button></div></div>
       <div className="scorebar"><span>{phase === 'playing' ? t.playing : phase === 'over' ? t.over : phase === 'paused' ? t.paused : t.ready}</span><div>{t.score} <strong>{String(score).padStart(4,'0')}</strong><span>{t.best} <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
+      </div>
       <div className="stage" onPointerDown={event => {
         if (!event.isPrimary || event.button !== 0) return;
         event.preventDefault();
@@ -427,7 +440,12 @@ function App() {
       }} onPointerCancel={() => { gesture.current = null; duck.current = false; }}
       onLostPointerCapture={() => { gesture.current = null; duck.current = false; }}>
         <canvas ref={canvas} width="1000" height="420" aria-label={t.canvasLabel} />
-        {!playerName ? <div className="overlay name-overlay" onPointerDown={event => event.stopPropagation()}><form onSubmit={savePlayerName}><h2>{t.nameHeading}</h2><label htmlFor="player-name">{t.nameLabel}</label><input id="player-name" required maxLength={24} autoComplete="nickname" enterKeyHint="done" placeholder={t.namePlaceholder} value={nameDraft} onChange={event => setNameDraft(event.target.value)} /><button type="submit">{t.continue} ↗</button></form></div> : phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? t.retryHeading : phase === 'paused' ? t.pauseHeading : t.readyHeading}</h2><button onPointerDown={event => { event.stopPropagation(); action.current(true); }} onClick={event => event.stopPropagation()}>{phase === 'over' ? t.restart : phase === 'paused' ? t.resume : t.start} ↗</button></div></div>}
+        {!playerName ? <div className="overlay name-overlay" onPointerDown={event => event.stopPropagation()}><form onSubmit={savePlayerName}><h2>{t.nameHeading}</h2><label htmlFor="player-name">{t.nameLabel}</label><input id="player-name" required maxLength={24} autoComplete="nickname" enterKeyHint="done" placeholder={t.namePlaceholder} value={nameDraft} onChange={event => setNameDraft(event.target.value)} /><button type="submit">{t.continue} ↗</button></form></div> : phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? t.retryHeading : phase === 'paused' ? t.pauseHeading : t.readyHeading}</h2><button onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); action.current(true); }}>{phase === 'over' ? t.restart : phase === 'paused' ? t.resume : t.start} ↗</button></div></div>}
+        {phase === 'playing' && <button type="button" className="pause-button"
+          aria-label={t.pause} title={t.pause + ' (P)'} aria-keyshortcuts="P"
+          onPointerDown={event => event.stopPropagation()} onClick={() => pauseGame.current()}>
+          <span aria-hidden="true">Ⅱ</span>
+        </button>}
         <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? t.exitFullscreen : t.fullscreen} title={expanded ? t.exitFullscreen : t.fullscreen}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
       </div>
       {leaderboardOpen && <div className="leaderboard-backdrop" onClick={closeLeaderboard}><section className="leaderboard-dialog" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title" onClick={event => event.stopPropagation()}><div className="leaderboard-heading"><div><p className="eyebrow">FERN RUN · TOP 10</p><h2 id="leaderboard-title">{t.leaderboard}</h2></div><button ref={closeLeaderboardButton} type="button" className="leaderboard-close" onClick={closeLeaderboard} aria-label={t.closeLeaderboard}>×</button></div><p className="leaderboard-player">{playerName ? `${t.player}: ${playerName}` : t.enterNameHint}</p>{rankingError && <p role="status">{rankingError === 'saveFailed' ? t.saveFailed : t.rankingsUnavailable} <button onClick={() => void refreshRankings()}>{t.tryAgain}</button></p>}<ol>{rankings.map((entry, index) => <li key={`${entry.name}-${index}`} className={entry.name.toLocaleLowerCase('vi') === playerName.toLocaleLowerCase('vi') ? 'current-player' : ''}><span>{entry.name}</span><strong>{entry.score}</strong></li>)}</ol>{!rankingError && rankings.length === 0 && <p>{t.emptyLeaderboard}</p>}</section></div>}
