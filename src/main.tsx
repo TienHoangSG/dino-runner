@@ -7,7 +7,7 @@ import { drawGround } from './ground';
 import { createDistantDragon } from './dragon';
 import { swipeDirection } from './swipe';
 import { canPterosaurJump, pterosaurLandingHeight } from './jump';
-import { hitsGroundObstacle } from './collision';
+import { tallRockOutline, rockOutline, hitsGroundObstacle } from './collision';
 import { drawUfo, shouldSpawnUfo, ufoScaleForFlightMode } from './ufo';
 import { backgroundModeFromStored, type BackgroundMode } from './background';
 import { canRestartAfterGameOver } from './restart';
@@ -148,6 +148,8 @@ function App() {
     let mode = 'ready', y = 0, velocity = 0, distance = 0, speed = 280, wait = 1.5, last = 0, frame = 0, gameOverAt = 0;
     const sprite = new Image();
     sprite.src = '/trex-motion.png';
+    const stump = new Image();
+    stump.src = '/weathered-stump.png';
     const pterosaur = new Image();
     pterosaur.src = '/pterosaur-orange-flight.png';
     const mountainLandscape = new Image();
@@ -159,15 +161,15 @@ function App() {
     let extraJumpUsed = false;
     let jumpPulse = 0;
     let obstaclePair: boolean[] = [];
-    let nextVolcano = Math.random() < 0.5;
-    let obstacles: { x: number; w: number; h: number; volcano: boolean; flying: boolean; ufo: boolean; flightY: number; flightMode: number; size: number; flapOffset: number }[] = [];
+    let nextLavaRock = Math.random() < 0.5;
+    let obstacles: { x: number; w: number; h: number; tall: boolean; lavaRock: boolean; flying: boolean; ufo: boolean; flightY: number; flightMode: number; size: number; flapOffset: number }[] = [];
     const change = (value: string) => { mode = value; setPhase(value); };
     pauseGame.current = () => { if (mode === 'playing') change('paused'); };
     action.current = (usedRestartButton = false) => {
       if (!playerNameRef.current || leaderboardOpenRef.current) return;
       if (mode === 'paused') { change('playing'); return; }
       if (mode === 'over' && !canRestartAfterGameOver(performance.now() - gameOverAt, usedRestartButton)) return;
-      if (mode !== 'playing') { extraJumpUsed = false; jumpPulse = 0; duck.current = false; y = 0; velocity = 0; distance = 0; speed = 280; wait = 1.5; obstacles = []; obstaclePair = []; nextVolcano = Math.random() < 0.5; setScore(0); change('playing'); }
+      if (mode !== 'playing') { extraJumpUsed = false; jumpPulse = 0; duck.current = false; y = 0; velocity = 0; distance = 0; speed = 280; wait = 1.5; obstacles = []; obstaclePair = []; nextLavaRock = Math.random() < 0.5; setScore(0); change('playing'); }
       if (y === 0 && !duck.current) {
         velocity = 650;
       } else if (canPterosaurJump(y, extraJumpUsed, obstacles)) {
@@ -206,16 +208,17 @@ function App() {
             obstaclePair = Math.random() < 0.5 ? [true, false] : [false, true];
           }
           const flying = obstaclePair.pop()!;
-          const volcano = !flying && nextVolcano;
-          if (!flying) nextVolcano = !nextVolcano;
+          const lavaRock = !flying && nextLavaRock;
+          if (!flying) nextLavaRock = !nextLavaRock;
           const flightMode = Math.floor(Math.random() * 5);
           const baseSize = Math.random() < 0.5 ? 0.75 : 1.1;
           const ufo = flying && shouldSpawnUfo(Math.floor(distance / 10), Math.random());
           const size = baseSize * (ufo ? ufoScaleForFlightMode(flightMode) : 1);
+          const tall = !flying && Math.random() < 0.35;
           obstacles.push({
-            x: 1000, w: flying ? 58 : volcano ? 64 : 48,
-            h: flying ? 35 : volcano ? 48 : 44,
-            volcano, flying, ufo, flightMode, size,
+            x: 1000, w: flying ? 58 : lavaRock ? 64 : 48,
+            h: flying ? 35 : (lavaRock ? 40 : 44) + (tall ? 7 : 0),
+            tall, lavaRock, flying, ufo, flightMode, size,
             flapOffset: flying && !ufo ? Math.random() * FLAP_CYCLE_SECONDS : 0,
             flightY: [301, 286, 330, 145, 70][flightMode]
           });
@@ -276,7 +279,7 @@ function App() {
         drawMidground(ctx, distance);
       }
       drawForest(ctx, forest, distance, detailed);
-      drawGround(ctx, distance);
+      drawGround(ctx, distance, obstacles);
       const polygon = (points: number[][], color: string) => {
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -290,56 +293,72 @@ function App() {
           const bodyY = o.flightY;
           if (o.ufo) drawUfo(ctx, o.x, bodyY, animationTime, o.size);
           else drawPterosaurArt(ctx, pterosaur, o.x, bodyY, o.size, flapTime, o.flapOffset);
-        } else if (o.volcano) {
-          const center = o.x + o.w / 2;
-          polygon([[o.x-3,348],[o.x+12,333],[center-10,top],[center+9,top],[o.x+o.w-12,332],[o.x+o.w+3,348],[center+10,352],[center-12,352]], '#643124');
-          polygon([[o.x+6,346],[center-10,top+3],[center-3,top+8],[center-10,330],[center-5,349]], '#86452e');
-          polygon([[center+9,top+2],[o.x+o.w-7,346],[center+13,343],[center+4,top+12]], '#492a25');
-          polygon([[center-11,top],[center+10,top],[center+16,top+17],[center+8,top+13],[center+6,top+28],[center+2,top+10],[center-3,top+20],[center-5,top+9],[center-17,top+23]], '#ee621d');
-          ctx.strokeStyle = '#fa8c29'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-          ctx.beginPath(); ctx.moveTo(center-5,top+13); ctx.lineTo(center-13,top+29); ctx.lineTo(center-19,342);
-          ctx.moveTo(center+7,top+19); ctx.lineTo(center+14,top+32); ctx.lineTo(center+17,346); ctx.stroke();
-          ctx.fillStyle = '#ffc749'; ctx.beginPath(); ctx.ellipse(center,top+1,10,3,0,0,Math.PI*2); ctx.fill();
-          for (let i = 0; i < 4; i++) {
-            const drift = (animationTime * 20 + i * 9) % 36;
-            ctx.fillStyle = 'rgba(180,188,181,' + (0.6 * (1-drift/36)) + ')';
-            ctx.beginPath(); ctx.arc(center+Math.sin(i+animationTime)*7,top-7-drift,5+drift/5,0,Math.PI*2); ctx.fill();
+        } else if (o.lavaRock) {
+          ctx.save();
+          ctx.translate(o.x, top);
+          ctx.scale(o.w / 64, o.h / 40);
+          // Draw the buried crust first so its upper edge joins the exposed rock.
+          polygon([[2,34],[60,35],[56,43],[46,50],[27,54],[14,49],[8,42]], '#382922');
+          polygon([[13,39],[45,38],[39,45],[27,50],[16,46]], '#534037');
+          polygon([[30,39],[34,40],[29,44],[29,48],[27,44]], '#a65231');
+          if (o.tall) {
+            polygon(tallRockOutline.map(([x, y]) => [x, y]), '#302839');
+            polygon([[0,29],[5,21],[29,0],[24,15],[10,28]], '#64566a');
+            polygon([[29,0],[42,2],[57,15],[40,12],[24,15]], '#89788a');
+            polygon([[24,15],[40,12],[34,28],[20,40],[10,28]], '#4a4154');
+            polygon([[40,12],[57,15],[64,31],[50,25],[34,28]], '#574556');
+          } else {
+            polygon(rockOutline.map(([x, y]) => [x, y]), '#392b2b');
+            polygon([[0,27],[8,13],[23,2],[32,8],[20,19],[9,22]], '#725249');
+            polygon([[23,2],[40,0],[55,7],[46,13],[32,8]], '#936953');
+            polygon([[9,22],[20,19],[33,24],[28,35],[13,40],[2,34]], '#523a34');
+            polygon([[46,13],[55,7],[64,23],[60,35],[49,29]], '#493437');
           }
+          const fissures = new Path2D(o.tall
+            ? 'M28 5 L24 15 L31 20 L34 28 L43 34 L46 38 M34 28 L48 24 L56 28 M31 20 L19 22 L12 29'
+            : 'M8 15 L20 17 L30 10 L35 16 L33 23 L43 28 L48 37 M33 23 L23 27 L18 35 M43 28 L51 21 L59 22');
+          ctx.lineJoin = 'round';
+          ctx.strokeStyle = '#ba4124';
+          ctx.lineWidth = 3;
+          ctx.stroke(fissures);
+          ctx.strokeStyle = o.tall ? '#ffda78' : '#ffab44';
+          ctx.lineWidth = 1.2;
+          ctx.stroke(fissures);
+
+          // Stagger the wisps so each fades out before starting again.
+          for (let i = 0; i < 7; i++) {
+            const age = (animationTime * 0.55 + i / 7) % 1;
+            const smokeX = 28 + (i % 3) * 3 + 10 * age + 3 * Math.sin(age * 6 + i);
+            const smokeY = 8 - 43 * age;
+            const radius = 3 + 7 * age;
+            const haze = ctx.createRadialGradient(smokeX, smokeY, 0, smokeX, smokeY, radius);
+            haze.addColorStop(0, 'rgba(96,87,83,0.55)');
+            haze.addColorStop(1, 'rgba(96,87,83,0)');
+            ctx.fillStyle = haze;
+            ctx.globalAlpha = Math.sin(Math.PI * age);
+            ctx.fillRect(smokeX - radius, smokeY - radius, radius * 2, radius * 2);
+          }
+          ctx.restore();
+        } else if (stump.complete && stump.naturalWidth) {
+          // The trunk flares into roots 56% down the sprite, at grass level.
+          const height = o.h / 0.56;
+          const width = height * stump.naturalWidth / stump.naturalHeight;
+          ctx.save();
+          ctx.translate(o.x + o.w / 2, top);
+          if (o.tall) {
+            // A snapped side limb and silvered bark distinguish the elder stump.
+            ctx.scale(-1, 1);
+            polygon([[9,24],[20,18],[24,9],[31,8],[28,21],[16,35]], '#514941');
+            polygon([[17,25],[23,19],[27,10],[29,10],[26,21]], '#948577');
+            polygon([[24,9],[28,7],[31,8],[27,11]], '#ddc59c');
+            ctx.filter = 'saturate(0.32) brightness(0.9)';
+          }
+          ctx.drawImage(stump, -width / 2, 0, width, height);
+          ctx.restore();
         } else {
-          const x = o.x, w = o.w;
-          // Broad root flare anchors the obstacle to the running surface.
-          ctx.fillStyle = '#263f2a40';
-          ctx.beginPath(); ctx.ellipse(x+w/2,351,w/2+10,3,0,0,Math.PI*2); ctx.fill();
-          polygon([[x-7,350],[x+5,338],[x+7,top+5],[x+12,top+13],[x+16,top],[x+21,top+10],[x+27,top+7],[x+31,top+17],[x+w-6,top+3],[x+w-4,336],[x+w+8,350],[x+29,347],[x+16,352]], '#3c291f');
-          const wood = ctx.createLinearGradient(x,0,x+w,0);
-          wood.addColorStop(0,'#6a442b'); wood.addColorStop(0.4,'#a1784b'); wood.addColorStop(0.65,'#64402a'); wood.addColorStop(1,'#38271e');
-          ctx.fillStyle = wood;
-          ctx.beginPath(); ctx.moveTo(x+8,top+15); ctx.lineTo(x+16,top+4);
-          ctx.lineTo(x+21,top+15); ctx.lineTo(x+29,top+12); ctx.lineTo(x+33,top+23);
-          ctx.lineTo(x+w-7,top+12); ctx.lineTo(x+w-6,337); ctx.lineTo(x+31,347);
-          ctx.lineTo(x+15,347); ctx.lineTo(x+7,339); ctx.closePath(); ctx.fill();
-          polygon([[x+12,top+14],[x+16,top+2],[x+20,top+12],[x+18,top+21]], '#d3b17a');
-          polygon([[x+w-13,top+17],[x+w-6,top+4],[x+w-6,top+15],[x+w-11,top+27]], '#b99863');
-          ctx.strokeStyle = '#402b20'; ctx.lineWidth = 1.5;
-          for (let i = 0; i < 5; i++) {
-            const bx = x+10+i*7;
-            ctx.beginPath(); ctx.moveTo(bx,top+22+i%2*3);
-            ctx.bezierCurveTo(bx-4,top+30,bx+3,337,bx-3,346); ctx.stroke();
-          }
-          ctx.fillStyle = '#2b231b'; ctx.beginPath();
-          ctx.ellipse(x+27,top+29,4,8,-0.15,0,Math.PI*2); ctx.fill();
-          ctx.strokeStyle = '#be925b'; ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.ellipse(x+27,top+29,6,10,-0.15,0.2,Math.PI*1.5); ctx.stroke();
-          polygon([[x+11,335],[x+2,345],[x-7,350],[x+8,347],[x+18,338]], '#926540');
-          polygon([[x+31,337],[x+24,352],[x+33,348],[x+w+8,350],[x+w-4,339]], '#765034');
-          ctx.strokeStyle = '#c29960'; ctx.lineWidth = 1;
-          ctx.beginPath();ctx.moveTo(x+11,340);ctx.lineTo(x+1,347);
-          ctx.moveTo(x+32,341);ctx.lineTo(x+29,348);ctx.stroke();
-          [[8,22,4],[17,37,5],[38,32,4],[4,40,4]].forEach(([mx,my,r]) => {
-            ctx.fillStyle = '#496e2d'; ctx.beginPath(); ctx.ellipse(x+mx,top+my,r+2,r*1.2,0.3,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#87a744'; ctx.beginPath(); ctx.ellipse(x+mx-1,top+my-2,r,r*0.8,0.3,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#b4c568'; ctx.beginPath(); ctx.arc(x+mx-2,top+my-3,1,0,Math.PI*2);ctx.fill();
-          });
+          // Keep the obstacle visible while the artwork loads.
+          polygon([[o.x+6,350],[o.x+7,top+5],[o.x+16,top],[o.x+23,top+9],
+            [o.x+o.w-7,top+4],[o.x+o.w-5,350]], '#68442d');
         }
       });
       const base = 350-y;

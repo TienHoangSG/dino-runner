@@ -1,4 +1,4 @@
-export function drawGround(ctx: CanvasRenderingContext2D, distance: number) {
+export function drawGround(ctx: CanvasRenderingContext2D, distance: number, obstacles: readonly { x: number; w: number; h: number; flying: boolean; lavaRock: boolean }[]) {
   ctx.fillStyle = '#81431e';
   ctx.fillRect(0, 350, 1000, 70);
   ctx.beginPath();
@@ -56,6 +56,19 @@ export function drawGround(ctx: CanvasRenderingContext2D, distance: number) {
   }
 
   // Flat walking edge keeps the visible surface aligned with collision physics.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, 1000, 420);
+  for (const obstacle of obstacles) {
+    if (obstacle.flying || obstacle.lavaRock) continue;
+    // Expose soil beneath the root crown, including the gaps between roots.
+    const center = obstacle.x + obstacle.w / 2;
+    const radius = 38 * obstacle.h / 44;
+    ctx.moveTo(center + radius, 352);
+    ctx.ellipse(center, 352, radius, 15, 0, 0, Math.PI * 2);
+    ctx.closePath();
+  }
+  ctx.clip('evenodd');
   ctx.fillStyle = '#4f651b'; ctx.fillRect(0,350,1000,8);
   ctx.fillStyle = '#8eaf20'; ctx.fillRect(0,350,1000,5);
   for (let i = 0; i < 100; i++) {
@@ -66,4 +79,5 @@ export function drawGround(ctx: CanvasRenderingContext2D, distance: number) {
     ctx.lineTo(x,348); ctx.lineTo(x+3,345-height);
     ctx.lineTo(x+4,351); ctx.closePath(); ctx.fill();
   }
+  ctx.restore();
 }

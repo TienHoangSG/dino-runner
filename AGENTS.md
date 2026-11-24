@@ -37,7 +37,7 @@ npm run build
 | `src/style.css` | Bố cục trang, overlay, điều khiển, chế độ toàn màn hình và màn hình xoay ngang. |
 | `src/jump.ts` | Điều kiện nhảy lần hai trên vật thể bay và xử lý chân đáp lên lưng khi rơi xuống. |
 | `src/pterosaur-motion.ts`, `src/pterosaur-art.ts` | Bốn khung gốc Pterosaur và các tư thế chuyển tiếp giữa chúng, giữ cố định thân chim. |
-| `src/collision.ts` | Va chạm gốc cây dạng hộp và núi lửa dạng thân núi thuôn. |
+| `src/collision.ts` | Va chạm gốc cây dạng hộp và đá nham thạch theo viền đa giác. |
 | `src/swipe.ts` | Quy đổi cử chỉ vuốt khi màn hình bình thường hoặc bị xoay CSS. |
 | `src/restart.ts` | Quy tắc 5 giây sau khi chết. |
 | `src/background.ts` | Đọc lựa chọn nền đã lưu; mặc định `simple`. |
@@ -71,12 +71,12 @@ npm run build
 ## 5. Sinh vật cản và va chạm
 
 - Vật cản sinh ở `x = 1000`, di chuyển sang trái theo tốc độ chạy và được bỏ khi `x < -80`. Khoảng chờ giữa hai lần sinh là **1,25–1,95 giây**.
-- Hàng đợi `obstaclePair` chứa một vật bay và một vật dưới đất theo thứ tự tráo ngẫu nhiên. Vì ghép theo cặp, có thể có tối đa hai vật cùng nhóm sát nhau ở ranh giới cặp. Vật dưới đất luân phiên **núi lửa / gốc cây**.
+- Hàng đợi `obstaclePair` chứa một vật bay và một vật dưới đất theo thứ tự tráo ngẫu nhiên. Vì ghép theo cặp, có thể có tối đa hai vật cùng nhóm sát nhau ở ranh giới cặp. Vật dưới đất luân phiên **đá nham thạch / gốc cây**.
 - Vật bay chọn ngẫu nhiên một trong năm tâm độ cao: `[301, 286, 330, 145, 70]`. Hai mức cuối ở rất cao nhưng vẫn thuộc tiền cảnh và vẫn tính va chạm. Kích thước cơ sở của Pterosaur là `0.75` hoặc `1.1`.
 - Khi **điểm > 2.000**, 20% lượt vật bay được thay bằng UFO (`shouldSpawnUfo`), không sinh thêm một vật cản ngoài lượt đó. UFO ở `flightMode === 4` (`flightY = 70`) nhân đôi `size`. Cùng biến `size` hiện được dùng cho cả vẽ và va chạm.
 - T-rex dùng biên va chạm ngang **120..170**, đỉnh `350 - y - 65` khi đứng hoặc `350 - y - 29` khi cúi, chân `346 - y`. Sprite vẽ từ `x = 66` rộng 132 nên hộp va chạm cố ý nhỏ hơn hình.
 - Vật bay dùng thân ngang `x + 29 ± 22 * size`, trên `flightY - 9 * size`, dưới `flightY + 7 * size`. Cả UFO cũng đi qua nhánh này. Khi đổi sprite hoặc kích thước, so hình vẽ với biên va chạm bằng mắt và cập nhật các quy tắc trong `jump.ts` tương ứng.
-- Gốc cây có hộp va chạm thu nhỏ. Núi lửa dùng thân hình nón: nửa bề ngang tăng từ 9 ở đỉnh đến 28 ở chân để không chết khi đi qua khoảng trống bên sườn trên (`src/collision.ts`).
+- Gốc cây có hộp va chạm thu nhỏ. Đá nham thạch dùng chung đường viền cho hình vẽ và va chạm (`src/collision.ts`).
 - `pterosaurLandingHeight` kiểm tra đường quét chân từ khung trước sang khung hiện tại khi đang rơi, rồi đặt chân ở trên lưng vật bay. `canPterosaurJump` cho phép cú nhảy thứ hai nếu chân đã ở trên lưng, khoảng cách dọc **0..34 px**, ngang gần phần thân và chưa dùng lượt nhảy thêm. Quyền này đặt lại khi đáp đất hoặc bắt đầu ván mới. Hàm hiện lọc theo `flying`, do đó UFO cũng hỗ trợ đáp/nhảy lần hai; tên hàm vẫn giữ từ lúc chỉ có Pterosaur.
 
 ## 6. Hiển thị và các lớp cảnh
