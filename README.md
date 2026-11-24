@@ -1,6 +1,8 @@
 # Fern Run
 Game khủng long chạy vô tận với React, TypeScript và Canvas.
 
+Giao diện có Tiếng Việt và English. Trong thanh phía trên khung game, chọn nền Đơn giản/Chi tiết hoặc dùng nút VI / EN để đổi ngôn ngữ. Các lựa chọn được nhớ trên trình duyệt; tiếng Việt là mặc định.
+
 ## Chạy trên máy
 Dùng Node.js 24. Chạy npm ci rồi npm run dev và mở địa chỉ Vite hiển thị.
 

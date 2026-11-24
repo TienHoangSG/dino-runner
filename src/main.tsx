@@ -12,10 +12,21 @@ import { drawUfo, shouldSpawnUfo, ufoScaleForFlightMode } from './ufo';
 import { backgroundModeFromStored, type BackgroundMode } from './background';
 import { canRestartAfterGameOver } from './restart';
 import { loadLeaderboard, saveBestScore, type Ranking } from './leaderboard';
+import { languageFromStored, messages, type Language } from './i18n';
+import { FLAP_CYCLE_SECONDS } from './pterosaur-motion';
+import { drawPterosaurArt } from './pterosaur-art';
 
 const bestKey = (name: string) => `fern-best:${name.toLocaleLowerCase('vi')}`;
 
 function App() {
+  const [language, setLanguage] = useState<Language>(() => {
+    try { return languageFromStored(localStorage.getItem('fern-language')); } catch { return 'vi'; }
+  });
+  const t = messages[language];
+  useEffect(() => {
+    document.documentElement.lang = language;
+    try { localStorage.setItem('fern-language', language); } catch { /* Storage may be unavailable. */ }
+  }, [language]);
   const gameContainer = useRef<HTMLElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [rotateLayout, setRotateLayout] = useState(false);
@@ -41,13 +52,13 @@ function App() {
   const [nameDraft, setNameDraft] = useState(playerName);
   const playerNameRef = useRef(playerName);
   const [rankings, setRankings] = useState<Ranking[]>([]);
-  const [rankingError, setRankingError] = useState('');
+  const [rankingError, setRankingError] = useState<'unavailable' | 'saveFailed' | null>(null);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const leaderboardOpenRef = useRef(false);
   const pauseGame = useRef<() => void>(() => { /* Initialized by the game effect. */ });
   const leaderboardButton = useRef<HTMLButtonElement>(null);
   const closeLeaderboardButton = useRef<HTMLButtonElement>(null);
-  const refreshRankings = () => loadLeaderboard().then(entries => { setRankings(entries); setRankingError(''); }).catch(() => setRankingError('Bảng xếp hạng chưa khả dụng.'));
+  const refreshRankings = () => loadLeaderboard().then(entries => { setRankings(entries); setRankingError(null); }).catch(() => setRankingError('unavailable'));
   useEffect(() => { void refreshRankings(); }, []);
   useEffect(() => {
     if (!leaderboardOpen) return;
@@ -144,35 +155,12 @@ function App() {
     const mountainPass = new Image();
     mountainPass.src = '/prehistoric-mountain-pass.png';
     let animationTime = 0;
+    let flapTime = 0;
     let extraJumpUsed = false;
     let jumpPulse = 0;
     let obstaclePair: boolean[] = [];
     let nextVolcano = Math.random() < 0.5;
-    let obstacles: { x: number; w: number; h: number; volcano: boolean; flying: boolean; ufo: boolean; flightY: number; flightMode: number; size: number }[] = [];
-    const drawPterosaur = (x: number, flightY: number, size: number, phase = 0) => {
-          if (pterosaur.complete && pterosaur.naturalWidth) {
-            const frameWidth = pterosaur.naturalWidth / 4;
-            const frameHeight = pterosaur.naturalHeight;
-            const flightFrame = Math.floor(animationTime * 4.5 + phase) % 4;
-            // Register frames by the eye, rather than the changing wing bounds.
-            const eyeAnchors = [
-              { x: 200 / 543, y: 245 / 724 },
-              { x: 207 / 543, y: 248 / 724 },
-              { x: 209 / 543, y: 249 / 724 },
-              { x: 211 / 543, y: 249 / 724 }
-            ];
-            const eye = eyeAnchors[flightFrame];
-            const width = 105 * size;
-            const height = width * frameHeight / frameWidth;
-            ctx.save();
-            if (size > 1) ctx.filter = 'saturate(0.35) brightness(0.82)';
-            ctx.drawImage(
-              pterosaur, flightFrame * frameWidth, 0, frameWidth, frameHeight,
-              x + 12 - width * eye.x, flightY - 12 * size - height * eye.y, width, height
-            );
-            ctx.restore();
-          }
-    };
+    let obstacles: { x: number; w: number; h: number; volcano: boolean; flying: boolean; ufo: boolean; flightY: number; flightMode: number; size: number; flapOffset: number }[] = [];
     const change = (value: string) => { mode = value; setPhase(value); };
     pauseGame.current = () => { if (mode === 'playing') change('paused'); };
     action.current = (usedRestartButton = false) => {
@@ -206,6 +194,7 @@ function App() {
       const dt = Math.min((time - last) / 1000 || 0, 0.035); last = time;
       if (mode === 'playing') {
         animationTime += dt * speed / 280;
+        flapTime += dt;
         distance += speed * dt; speed = Math.min(680, 280 + Math.floor(distance / 5000) * 40);
         const previousHeight = y;
         velocity -= 1750 * dt; y = Math.max(0, y + velocity * dt); if (y === 0) { velocity = 0; extraJumpUsed = false; }
@@ -227,6 +216,7 @@ function App() {
             x: 1000, w: flying ? 58 : volcano ? 64 : 48,
             h: flying ? 35 : volcano ? 48 : 44,
             volcano, flying, ufo, flightMode, size,
+            flapOffset: flying && !ufo ? Math.random() * FLAP_CYCLE_SECONDS : 0,
             flightY: [301, 286, 330, 145, 70][flightMode]
           });
           wait = 1.25 + Math.random() * 0.7;
@@ -259,10 +249,10 @@ function App() {
           setBest(previous => { const next = Math.max(previous, result); try { localStorage.setItem(bestKey(playerNameRef.current), String(next)); } catch { /* Storage may be unavailable. */ } return next; });
           void saveBestScore(playerNameRef.current, result)
             .then(() => refreshRankings())
-            .catch(() => setRankingError('Chưa lưu được điểm lên server. Hãy kiểm tra kết nối.'));
+            .catch(() => setRankingError('saveFailed'));
         }
       }
-      const detailed = detailedBackground.current && mountainLandscape.complete && mountainLandscape.naturalWidth;
+      const detailed = detailedBackground.current && mountainLandscape.complete && mountainLandscape.naturalWidth > 0;
       if (detailed) {
         ctx.drawImage(mountainLandscape, 0, 0, 1000, 420);
       } else {
@@ -279,13 +269,13 @@ function App() {
       if (detailed) {
         if (mountainPass.complete && mountainPass.naturalWidth) {
           ctx.save();
-          ctx.globalAlpha = 0.58;
+          ctx.globalAlpha = 0.24;
           ctx.drawImage(mountainPass, 0, 0, 1000, 420);
           ctx.restore();
         }
         drawMidground(ctx, distance);
       }
-      drawForest(ctx, forest, distance);
+      drawForest(ctx, forest, distance, detailed);
       drawGround(ctx, distance);
       const polygon = (points: number[][], color: string) => {
         ctx.fillStyle = color;
@@ -299,7 +289,7 @@ function App() {
         if (o.flying) {
           const bodyY = o.flightY;
           if (o.ufo) drawUfo(ctx, o.x, bodyY, animationTime, o.size);
-          else drawPterosaur(o.x, bodyY, o.size);
+          else drawPterosaurArt(ctx, pterosaur, o.x, bodyY, o.size, flapTime, o.flapOffset);
         } else if (o.volcano) {
           const center = o.x + o.w / 2;
           polygon([[o.x-3,348],[o.x+12,333],[center-10,top],[center+9,top],[o.x+o.w-12,332],[o.x+o.w+3,348],[center+10,352],[center-12,352]], '#643124');
@@ -388,13 +378,13 @@ function App() {
     return () => { cancelAnimationFrame(frame); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); window.removeEventListener('keydown', key); document.removeEventListener('visibilitychange', visibility); };
   }, []);
   return <main>
-    <header><a href="./" className="brand">fern run<span>↗</span></a><span className="tag">Một chuyến chạy qua rừng cổ đại</span></header>
+    <header><a href="./" className="brand">fern run<span>↗</span></a><span className="tag">{t.tagline}</span></header>
 
     <section ref={gameContainer} onContextMenu={event => event.preventDefault()} onDragStart={event => event.preventDefault()} className={expanded ? `game expanded${rotateLayout ? " force-landscape" : ""}` : "game"}>
 
 
-      <div className="level"><span>CẤP {Math.floor(score / 500) + 1} · Tăng tốc mỗi 500 điểm</span><button ref={leaderboardButton} className="leaderboard-button" type="button" onClick={openLeaderboard} aria-haspopup="dialog" aria-expanded={leaderboardOpen}>★ Bảng xếp hạng</button></div>
-      <div className="scorebar"><span>{phase === 'playing' ? 'ĐANG CHẠY' : phase === 'over' ? 'KẾT THÚC' : phase === 'paused' ? 'TẠM DỪNG' : 'SẴN SÀNG'}</span><div>ĐIỂM <strong>{String(score).padStart(4,'0')}</strong><span>KỶ LỤC <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
+      <div className="level"><span className="level-copy">{t.level} {Math.floor(score / 500) + 1}<span className="speed-hint"> · {t.speedHint}</span></span><div className="game-options"><div className="background-options" role="group" aria-label={t.backgroundLabel}><span>{t.background}</span><select aria-label={t.backgroundLabel} value={backgroundMode} onChange={event => setBackgroundMode(event.target.value as BackgroundMode)}><option value="simple">{t.simple}</option><option value="detailed">{t.detailed}</option></select></div><div className="language-switch" role="group" aria-label={t.languageLabel}><button type="button" lang="vi" className={language === 'vi' ? 'active' : ''} aria-pressed={language === 'vi'} onClick={() => setLanguage('vi')}>VI</button><button type="button" lang="en" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button></div><button ref={leaderboardButton} className="leaderboard-button" type="button" onClick={openLeaderboard} aria-haspopup="dialog" aria-expanded={leaderboardOpen}>★ {t.leaderboard}</button></div></div>
+      <div className="scorebar"><span>{phase === 'playing' ? t.playing : phase === 'over' ? t.over : phase === 'paused' ? t.paused : t.ready}</span><div>{t.score} <strong>{String(score).padStart(4,'0')}</strong><span>{t.best} <strong>{String(best).padStart(4,'0')}</strong></span></div></div>
       <div className="stage" onPointerDown={event => {
         if (!event.isPrimary || event.button !== 0) return;
         event.preventDefault();
@@ -417,23 +407,23 @@ function App() {
         else if (!current.direction) action.current();
       }} onPointerCancel={() => { gesture.current = null; duck.current = false; }}
       onLostPointerCapture={() => { gesture.current = null; duck.current = false; }}>
-        <canvas ref={canvas} width="1000" height="420" aria-label="Game T-rex nhảy qua núi lửa và đá" />
-        {!playerName ? <div className="overlay name-overlay" onPointerDown={event => event.stopPropagation()}><form onSubmit={savePlayerName}><h2>Tên của bạn?</h2><label htmlFor="player-name">Nhập tên để tham gia bảng xếp hạng</label><input id="player-name" required maxLength={24} autoComplete="nickname" placeholder="Tên người chơi" value={nameDraft} onChange={event => setNameDraft(event.target.value)} /><button type="submit">Tiếp tục ↗</button></form></div> : phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? 'Thử thêm một lần?' : phase === 'paused' ? 'Hít thở một chút.' : 'Rừng đang chờ bạn.'}</h2><button onPointerDown={event => { event.stopPropagation(); action.current(true); }} onClick={event => event.stopPropagation()}>{phase === 'over' ? 'Chơi lại ↗' : phase === 'paused' ? 'Tiếp tục ↗' : 'Bắt đầu chạy ↗'}</button></div></div>}
-        <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"} title={expanded ? "Thoát toàn màn hình" : "Toàn màn hình"}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
+        <canvas ref={canvas} width="1000" height="420" aria-label={t.canvasLabel} />
+        {!playerName ? <div className="overlay name-overlay" onPointerDown={event => event.stopPropagation()}><form onSubmit={savePlayerName}><h2>{t.nameHeading}</h2><label htmlFor="player-name">{t.nameLabel}</label><input id="player-name" required maxLength={24} autoComplete="nickname" enterKeyHint="done" placeholder={t.namePlaceholder} value={nameDraft} onChange={event => setNameDraft(event.target.value)} /><button type="submit">{t.continue} ↗</button></form></div> : phase !== 'playing' && <div className="overlay"><div><h2>{phase === 'over' ? t.retryHeading : phase === 'paused' ? t.pauseHeading : t.readyHeading}</h2><button onPointerDown={event => { event.stopPropagation(); action.current(true); }} onClick={event => event.stopPropagation()}>{phase === 'over' ? t.restart : phase === 'paused' ? t.resume : t.start} ↗</button></div></div>}
+        <button className="fullscreen-button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); void toggleFullscreen(); }} aria-label={expanded ? t.exitFullscreen : t.fullscreen} title={expanded ? t.exitFullscreen : t.fullscreen}><span aria-hidden="true">{expanded ? '⊡' : '⛶'}</span></button>
       </div>
-      <div className="controls"><span><kbd>SPACE</kbd> hoặc <kbd>↑</kbd> để nhảy</span><span>Giữ <kbd>↓</kbd> để cúi</span></div>
-      <div className="background-options" role="group" aria-label="Kiểu nền">
-        <span>Nền</span>
-        <button className={backgroundMode === 'detailed' ? 'active' : ''} aria-pressed={backgroundMode === 'detailed'} onClick={() => setBackgroundMode('detailed')}>Chi tiết</button>
-        <button className={backgroundMode === 'simple' ? 'active' : ''} aria-pressed={backgroundMode === 'simple'} onClick={() => setBackgroundMode('simple')}>Đơn giản</button>
-      </div>
-
-      {leaderboardOpen && <div className="leaderboard-backdrop" onClick={closeLeaderboard}><section className="leaderboard-dialog" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title" onClick={event => event.stopPropagation()}><div className="leaderboard-heading"><div><p className="eyebrow">FERN RUN · TOP 10</p><h2 id="leaderboard-title">Bảng xếp hạng</h2></div><button ref={closeLeaderboardButton} type="button" className="leaderboard-close" onClick={closeLeaderboard} aria-label="Đóng bảng xếp hạng">×</button></div><p className="leaderboard-player">{playerName ? `Người chơi: ${playerName}` : 'Hãy nhập tên để bắt đầu cuộc đua.'}</p>{rankingError && <p role="status">{rankingError} <button onClick={() => void refreshRankings()}>Thử lại</button></p>}<ol>{rankings.map((entry, index) => <li key={`${entry.name}-${index}`} className={entry.name.toLocaleLowerCase('vi') === playerName.toLocaleLowerCase('vi') ? 'current-player' : ''}><span>{entry.name}</span><strong>{entry.score}</strong></li>)}</ol>{!rankingError && rankings.length === 0 && <p>Chưa có điểm nào. Hãy là người đầu tiên!</p>}</section></div>}
+      {leaderboardOpen && <div className="leaderboard-backdrop" onClick={closeLeaderboard}><section className="leaderboard-dialog" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title" onClick={event => event.stopPropagation()}><div className="leaderboard-heading"><div><p className="eyebrow">FERN RUN · TOP 10</p><h2 id="leaderboard-title">{t.leaderboard}</h2></div><button ref={closeLeaderboardButton} type="button" className="leaderboard-close" onClick={closeLeaderboard} aria-label={t.closeLeaderboard}>×</button></div><p className="leaderboard-player">{playerName ? `${t.player}: ${playerName}` : t.enterNameHint}</p>{rankingError && <p role="status">{rankingError === 'saveFailed' ? t.saveFailed : t.rankingsUnavailable} <button onClick={() => void refreshRankings()}>{t.tryAgain}</button></p>}<ol>{rankings.map((entry, index) => <li key={`${entry.name}-${index}`} className={entry.name.toLocaleLowerCase('vi') === playerName.toLocaleLowerCase('vi') ? 'current-player' : ''}><span>{entry.name}</span><strong>{entry.score}</strong></li>)}</ol>{!rankingError && rankings.length === 0 && <p>{t.emptyLeaderboard}</p>}</section></div>}
 
     </section>
-    <p className="swipe-guide">Vuốt lên để nhảy · Vuốt xuống và giữ để cúi · Nhấc tay để đứng lên</p>
-    <section className="intro"><div><p className="eyebrow">DINO RUNNER</p><h1>Chạy vào <em>kỷ tiền sử.</em></h1></div><p>Nhảy qua vật cản. Cúi né Pterosaur.<br/>Lập kỷ lục của riêng bạn.</p></section>
-    <footer><span>Mỗi 500 điểm, cuộc đua nhanh hơn.</span><span>FERN RUN</span></footer>
+    <section className="play-guide" aria-label={t.controlsTitle}>
+      <p className="eyebrow">{t.controlsTitle}</p>
+      <div className="guide-items">
+        <div className="guide-item"><span className="guide-icon" aria-hidden="true">↑</span><div><strong>{t.jumpAction}</strong><span className="guide-desktop"><kbd>SPACE</kbd> {t.or} <kbd>↑</kbd></span><span className="guide-touch">{t.tapOrSwipeUp}</span></div></div>
+        <div className="guide-item"><span className="guide-icon" aria-hidden="true">↓</span><div><strong>{t.duckAction}</strong><span className="guide-desktop">{t.holdDown} <kbd>↓</kbd></span><span className="guide-touch">{t.swipeDownHold}</span></div></div>
+      </div>
+      <p className="guide-note">{t.releaseToStand}</p>
+    </section>
+    <section className="intro"><div><p className="eyebrow">DINO RUNNER</p><h1>{t.introFirst} <em>{t.introSecond}</em></h1></div><p>{t.introLineOne}<br/>{t.introLineTwo}</p></section>
+    <footer><span>{t.footer}</span><span>FERN RUN</span></footer>
   </main>;
 }
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

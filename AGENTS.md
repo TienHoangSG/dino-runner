@@ -6,6 +6,8 @@ Tài liệu này mô tả **trạng thái mã nguồn hiện tại**. Khi thay �
 
 Fern Run là game chạy vô tận: React 18 + TypeScript + Vite vẽ bằng Canvas 2D. Bảng xếp hạng dùng API Cloudflare Pages Functions và D1; lựa chọn nền và tên người chơi được lưu bằng `localStorage` trên từng trình duyệt.
 
+Giao diện hỗ trợ Tiếng Việt (mặc định) và English. Tất cả chuỗi hiển thị và nhãn hỗ trợ truy cập ở `src/i18n.ts`; thêm thông báo mới phải có bản dịch cho cả hai ngôn ngữ. Nút VI / EN và hộp chọn nền nằm cùng nút Bảng xếp hạng ở đầu khung game. Đổi ngôn ngữ lưu khóa `fern-language` trong `localStorage` và cập nhật thuộc tính `lang` của trang. Không dịch tên riêng của người chơi hoặc dữ liệu điểm.
+
 Bảng xếp hạng dùng Pages Functions (`functions/api/leaderboard.js`) và Cloudflare D1 (`schema.sql`, `wrangler.jsonc`). Người chơi nhập tên trước ván đầu; tên lưu ở `fern-player-name` trên trình duyệt. Nút ở góc phải phía trên game mở bảng top 10 dạng hộp thoại; mở khi đang chạy sẽ tạm dừng game. API giữ điểm cao nhất theo tên và trả top 10. Tên không có tài khoản/mật khẩu, nên người khác có thể dùng cùng tên; điểm do client gửi nên có thể bị giả mạo. Không dùng bảng này cho giải thưởng hoặc phần thưởng có giá trị.
 
 ```sh
@@ -31,14 +33,16 @@ npm run build
 | Tệp | Vai trò |
 | --- | --- |
 | `src/main.tsx` | Giao diện React, vòng lặp `requestAnimationFrame`, trạng thái game, sinh vật cản, điều khiển, phát hiện va chạm và thứ tự vẽ Canvas. Đây là điểm vào quan trọng nhất. |
+| `src/i18n.ts` | Bộ chữ Tiếng Việt / English, lựa chọn ngôn ngữ đã lưu. |
 | `src/style.css` | Bố cục trang, overlay, điều khiển, chế độ toàn màn hình và màn hình xoay ngang. |
 | `src/jump.ts` | Điều kiện nhảy lần hai trên vật thể bay và xử lý chân đáp lên lưng khi rơi xuống. |
+| `src/pterosaur-motion.ts`, `src/pterosaur-art.ts` | Bốn khung gốc Pterosaur và các tư thế chuyển tiếp giữa chúng, giữ cố định thân chim. |
 | `src/collision.ts` | Va chạm gốc cây dạng hộp và núi lửa dạng thân núi thuôn. |
 | `src/swipe.ts` | Quy đổi cử chỉ vuốt khi màn hình bình thường hoặc bị xoay CSS. |
 | `src/restart.ts` | Quy tắc 5 giây sau khi chết. |
 | `src/background.ts` | Đọc lựa chọn nền đã lưu; mặc định `simple`. |
 | `src/forest.ts`, `src/ground.ts` | Cây nhiều lớp và mặt đất cỏ, đất, hóa thạch. |
-| `src/midground.ts` | Lớp sương sáng và chân núi xanh lam nhạt của nền Chi tiết; đường viền rộng, ít chi tiết, trôi chậm liên tục. |
+| `src/midground.ts` | Sương khí quyển, dải đồi xa và dải nền xanh nhạt sau nhân vật của nền Chi tiết; đường viền rộng, ít chi tiết, trôi chậm liên tục. |
 | `src/dragon.ts` | Rồng xa trước mốc 2.001 điểm; MiG-31 thay rồng sau mốc đó. |
 | `src/ufo.ts` | Quy tắc 20% UFO, phóng to UFO cao nhất và hoạt ảnh đĩa bay. |
 | `public/` | Sprite T-rex, Pterosaur, rồng, MiG-31, UFO và các lớp nền. |
@@ -58,6 +62,8 @@ npm run build
 
 - Máy tính: `Space`, `↑` hoặc bấm vào vùng game để bắt đầu/nhảy; giữ `↓` để cúi, thả để đứng. Cúi chỉ thay đổi tư thế khi đang ở mặt đất.
 - Cảm ứng: chạm vùng game để bắt đầu/nhảy; vuốt lên để nhảy; vuốt xuống và **giữ** để cúi, nhấc tay để đứng. `src/swipe.ts` yêu cầu quãng vuốt dọc ít nhất 24 px và lớn hơn chuyển động ngang 1,2 lần. Khi CSS xoay màn hình, vector vuốt được đổi trục.
+- Hướng dẫn bên dưới khung game dùng hai thẻ Nhảy/Cúi (`.play-guide`); CSS hiển thị phím trên máy tính và cử chỉ trên thiết bị cảm ứng. Chữ của cả hai nằm trong `src/i18n.ts`.
+- Giao diện ưu tiên khung game, đặt lựa chọn nền/ngôn ngữ/xếp hạng ở thanh công cụ và điểm ở hàng riêng. Trên màn hình hẹp, các nút có vùng chạm lớn hơn; ô nhập tên và bảng xếp hạng dùng lớp phủ theo khung nhìn để không bị cắt bởi canvas. Ở chiều rộng 360 px trở xuống, hai hướng dẫn xếp dọc cho dễ đọc. Khi sửa bố cục, kiểm tra cả 320 px, 375 px, desktop và toàn màn hình; trường nhập giữ chữ tối thiểu 16 px trên cảm ứng để tránh trình duyệt tự phóng to.
 - Điều khiển cảm ứng nằm ở `.stage`, dùng Pointer Events và pointer capture. Trình duyệt không hiện menu giữ lâu/chọn văn bản trong vùng game. Nút toàn màn hình và nút overlay dừng sự kiện để tránh phát nhảy ngoài ý muốn.
 - Va chạm chuyển sang `over`, ghi thời điểm bằng `performance.now()`. Trong **5.000 ms** đầu, thao tác chung trong game bị bỏ qua; nút **Chơi lại** có thể bắt đầu ngay. Hết 5 giây, thao tác trong game được chơi lại. Nhấn chơi lại đặt lại điểm, độ cao, tốc độ, vật cản và quyền nhảy lần hai.
 - Nút góc phải dưới vùng game bật/tắt toàn màn hình. Trên thiết bị cảm ứng dọc, game thử khóa hướng ngang; nếu trình duyệt không hỗ trợ, CSS xoay bố cục. Kiểm tra trên điện thoại thật khi sửa phần này.
@@ -77,12 +83,12 @@ npm run build
 
 Theo thứ tự vẽ ở `main.tsx`: (1) nền, (2) rồng/MiG-31 xa, (3) chân núi và trung cảnh nếu bật Chi tiết, (4) cây, (5) mặt đất, (6) vật cản, (7) T-rex. Khi thay thứ tự phải kiểm tra vật cản không bị che hoặc trông như nằm sai lớp.
 
-- **Nền Đơn giản** là mặc định cho người mới: trời màu chuyển sắc, mặt trời và ba dải đồi hình sin. **Nền Chi tiết** vẽ `prehistoric-mountain-valley.png`, lớp chân núi trong suốt `prehistoric-mountain-pass.png` với độ mờ 0,58, rồi lớp sương và chân núi xanh lam dịu ở `midground.ts` trôi theo `distance * 0.055`. Trung cảnh cố ý ít chi tiết, không có đường viền sáng để nhân vật và vật cản dễ nhận ra khi chơi lâu. Sau đó cả hai chế độ dùng chung cây và mặt đất. Lựa chọn lưu ở `fern-background`; giá trị `detailed` giữ Chi tiết, còn thiếu/khác thì dùng Đơn giản. Người đã chọn trước vẫn giữ thiết lập.
+- **Nền Đơn giản** là mặc định cho người mới: trời màu chuyển sắc, mặt trời và ba dải đồi hình sin. **Nền Chi tiết** vẽ `prehistoric-mountain-valley.png`, lớp vách đá trong suốt `prehistoric-mountain-pass.png` với độ mờ 0,24, rồi sương sáng và hai dải đồi ít chi tiết ở `midground.ts` trôi chậm theo `distance`. Dải dưới sáng, gần như đồng màu ở độ cao của nhân vật và vật cản để dễ phân biệt chúng; cây ở chế độ này cũng mờ hơn. Nền Đơn giản giữ nguyên độ đậm của cây. Lựa chọn lưu ở `fern-background`; giá trị `detailed` giữ Chi tiết, còn thiếu/khác thì dùng Đơn giản. Người đã chọn trước vẫn giữ thiết lập.
 - T-rex dùng `trex-motion.png` 4 cột × 2 hàng: hàng trên chạy, hàng dưới cúi. Cột chạy đổi theo `animationTime * 11`; vị trí sprite không phải hộp va chạm.
-- Pterosaur dùng `pterosaur-orange-flight.png` 4 khung liên tiếp, tốc độ khung `animationTime * 4.5`. Các khung được căn theo mắt để thân/đầu không nảy quá nhiều; con lớn được giảm bão hòa và độ sáng.
+- Pterosaur dùng đúng bốn khung gốc trong `pterosaur-orange-flight.png`, không dùng ảnh chim vẽ lại. `pterosaur-motion.ts` phát **10 nhịp** trong 1,67 giây rồi phát ngược lại (chu kỳ 3,34 giây), gồm các khung gốc và nhịp chuyển cánh; hai tư thế cánh ngang được giữ lâu hơn. `pterosaur-art.ts` căn theo mắt và chỉ vẽ một tư thế gốc mỗi lần, chuyển tư thế ở giữa nhịp. Nhịp độc lập với tốc độ chạy, mỗi vật bay có lệch pha riêng; hộp va chạm không đổi. Con lớn được giảm bão hòa và độ sáng.
 - UFO dùng `ufo-detailed.png`: lơ lửng khoảng 1,2 px, nghiêng nhẹ, đèn viền và vùng sáng quét. Tránh làm hình lệch quá xa vùng va chạm.
 - Rồng ở xa dùng `dragon-transparent-motion.png`: cánh đập, đuôi uốn theo các đoạn, hạ thấp và thỉnh thoảng phun lửa. Sau **2.000 điểm** MiG-31 thay toàn bộ rồng trong cùng vị trí xuất hiện; MiG có chuyển động và ánh động cơ. Hai nhân vật này chỉ là cảnh, **không va chạm**. Mốc thay là `score > 2000`, tức từ **2.001**.
-- `forest.ts` tạo 12 cây chia hai lớp với tốc độ trôi khác nhau. `ground.ts` vẽ cỏ, mặt cắt đất và hóa thạch. Các ảnh `public/dragon-fire-sheet.png`, `public/dragon-flight-sheet.png` và `setup.sh` nếu thấy ở máy phát triển là tệp chưa được theo dõi và không thuộc bản chạy hiện tại.
+- `forest.ts` tạo 12 cây chia hai lớp với tốc độ trôi khác nhau: cây thân cao lá kép, dương xỉ có lá chét, cycad và bụi lá rộng. Hình lá vẽ trực tiếp bằng Canvas, biến thể tán/thân được tính từ vị trí cây để ổn định giữa các khung hình; ở nền Chi tiết cây được làm mờ để không tranh độ nổi với vật cản. `ground.ts` vẽ cỏ, mặt cắt đất và hóa thạch. Các ảnh `public/dragon-fire-sheet.png`, `public/dragon-flight-sheet.png` và `setup.sh` nếu thấy ở máy phát triển là tệp chưa được theo dõi và không thuộc bản chạy hiện tại.
 
 ## 7. CI, triển khai và quy tắc khi sửa tiếp
 
