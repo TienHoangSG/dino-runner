@@ -19,6 +19,12 @@ jobs:
       - run: npm test
       - run: npx tsc --noEmit
       - run: npm run build
+      - name: Bundle the remote for Game Hub
+        run: |
+          npx vite build --config vite.remote.config.ts
+          mkdir -p dist/federation
+          cp -R dist-hub/assets dist/federation/
+          test -s dist/federation/assets/remoteEntry.js
       - uses: actions/upload-artifact@v4
         with:
           name: website
