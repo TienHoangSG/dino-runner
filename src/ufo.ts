@@ -13,7 +13,7 @@ let sprite: HTMLImageElement | null = null;
 function getSprite() {
   if (!sprite) {
     sprite = new Image();
-    sprite.src = '/ufo-detailed.png';
+    sprite.src = `${import.meta.env.BASE_URL}ufo-detailed.png`;
   }
   return sprite;
 }

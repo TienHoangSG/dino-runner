@@ -4,9 +4,9 @@ export function shouldUseMig31(score: number) {
 
 export function createDistantDragon() {
   const sprite = new Image();
-  sprite.src = '/dragon-transparent-motion.png';
+  sprite.src = `${import.meta.env.BASE_URL}dragon-transparent-motion.png`;
   const mig31 = new Image();
-  mig31.src = '/mig-31.png';
+  mig31.src = `${import.meta.env.BASE_URL}mig-31.png`;
 
   return (ctx: CanvasRenderingContext2D, time: number, distance: number) => {
     const score = Math.floor(distance / 10);

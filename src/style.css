@@ -1,5 +1,6 @@
+@scope (.fern-game) {
 * { box-sizing: border-box; }
-body { margin: 0; background: #f2f1e8; color: #244a3d; font-family: 'DM Sans', system-ui, sans-serif; }
+:scope { margin: 0; background: #f2f1e8; color: #244a3d; font-family: 'DM Sans', system-ui, sans-serif; }
 main { max-width: 1280px; margin: auto; padding: 24px 40px; }
 header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid #d9dece; }
 .brand { font-size: 27px; font-weight: 750; letter-spacing: -1.5px; color: inherit; text-decoration: none; }
@@ -140,9 +141,9 @@ footer span:last-child { letter-spacing: 2px; }
 }
 
 /* The game remains the focal point; controls and reading content sit around it. */
-:root { --ink:#224638; --muted:#647568; --accent:#ab6744; --line:#d5ddcc; --paper:#f4f1e8; --surface:#fffdf6; --ease-out:cubic-bezier(.23,1,.32,1); }
-html { -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
-body { background:radial-gradient(circle at 50% -120px,#fffdf6 0,#f4f1e8 540px); color:var(--ink); }
+:scope { --ink:#224638; --muted:#647568; --accent:#ab6744; --line:#d5ddcc; --paper:#f4f1e8; --surface:#fffdf6; --ease-out:cubic-bezier(.23,1,.32,1); }
+:scope { -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
+:scope { background:radial-gradient(circle at 50% -120px,#fffdf6 0,#f4f1e8 540px); color:var(--ink); }
 main { max-width:1320px; padding:28px clamp(18px,4vw,56px) 34px; }
 header { min-height:54px; padding-bottom:18px; border-color:var(--line); }
 .brand { display:inline-flex; align-items:center; font-size:25px; line-height:1; letter-spacing:-1.6px; }
@@ -303,4 +304,6 @@ button:active { transform:scale(.97); }
 @media (max-width:600px) {
   .game-options { flex-wrap:wrap; }
   .scene-choices button { min-height:44px; }
+}
+
 }
